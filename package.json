@@ -1,0 +1,33 @@
+{
+  "name": "dot-eth-js",
+  "version": "0.1.0",
+  "description": "\"JS bindings for the ethereum initial registrar\"",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maurelian/dot-eth-js.git"
+  },
+  "keywords": [
+    "ethereum"
+  ],
+  "author": "Maurelian",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/maurelian/dot-eth-js/issues"
+  },
+  "homepage": "https://github.com/maurelian/dot-eth-js#readme",
+  "dependencies": {
+    "ethereum-ens": "^0.1.1"
+  },
+  "devDependencies": {
+    "ethereumjs-testrpc": "^3.0.2",
+    "mocha": "^3.2.0",
+    "solc": "^0.4.4"
+  }
+}
