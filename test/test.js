@@ -45,10 +45,20 @@ describe('InitialRegistrar', function(){
         web3.eth.getAccounts(function(err, accts){
             accounts = accts;
             // Too slow for dev purposes, 
-            // var input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
-            // var output = solc.compile(input, 1);
-            
-            // speeds up the testing process during development: 
+            var input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
+            /*
+            Use this block for a fresh compile and save
+            var output = solc.compile(input, 1);
+            var compiled = {};
+            for (var contractName in output.contracts) {
+                // code and ABI that are needed by web3 
+                compiled[contractName] = {};
+                compiled[contractName].bytecode = output.contracts[contractName].bytecode;
+                compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
+            }
+            fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
+            */
+            //Use to speed up the testing process during development: 
             var output = JSON.parse(fs.readFileSync('test/contracts.json').toString());
             var deployer = output.contracts['DeployENS'];
             var deployensContract = web3.eth.contract(JSON.parse(deployer.interface));
@@ -56,7 +66,8 @@ describe('InitialRegistrar', function(){
             deployensContract.new(
                 {
                  from: accts[0],
-                 data: deployer.bytecode,
+                 // try prepending 0x when deploying...
+                 data: "0x" + deployer.bytecode,
                  gas: 4700000
                 }, function(err, contract) {
                     if(contract.address !== undefined) {
@@ -79,9 +90,10 @@ describe('InitialRegistrar', function(){
 
     
     describe('#startAuction()', function(){
+        accounts = web3.eth.accounts;
+        var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
         
         it('Should return an error when the name is too short', function(done) {
-            var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
             registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {                    
                     assert.equal(err, InitialRegistrar.TooShort);
                     done();
@@ -93,12 +105,19 @@ describe('InitialRegistrar', function(){
             registrar.startAuction('foobarbaz', {from: accounts[0]}, 
                 function (err, result) {
                     hash = sha3('foobarbaz');
-                    // why is this undefined?
-                    registrar.entries.call(hash, function (err, result) {
-                        var status = result[0];
+                    registrar.contract.entries(hash, function (err, result) {
+                        console.log("err:", err);
+                        console.log("result:", result);
+                        var status = result[1];
                         assert.equal(status, 1);
                         done();
                     });
+// registrar.contract.entries(hash, function (err, result) {
+//     console.log(result);
+//     var status = result;
+//     assert.equal(status, 1);
+//     done();
+// });
                 }
             );
         });
