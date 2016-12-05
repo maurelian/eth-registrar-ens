@@ -44,10 +44,10 @@ describe('InitialRegistrar', function(){
         // Deploy the ENS registry and registrar
         web3.eth.getAccounts(function(err, accts){
             accounts = accts;
-            // Too slow for dev purposes, 
-            var input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
             /*
-            Use this block for a fresh compile and save
+            // Use this block for a fresh compile and save, or for testing a fresh install
+            // Otherwise it's too slow for dev processes.
+            var input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
             var output = solc.compile(input, 1);
             var compiled = {};
             for (var contractName in output.contracts) {
@@ -58,16 +58,15 @@ describe('InitialRegistrar', function(){
             }
             fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
             */
-            //Use to speed up the testing process during development: 
-            var output = JSON.parse(fs.readFileSync('test/contracts.json').toString());
-            var deployer = output.contracts['DeployENS'];
-            var deployensContract = web3.eth.contract(JSON.parse(deployer.interface));
+            // Use to speed up the testing process during development: 
+            var compiled = JSON.parse(fs.readFileSync('test/contracts.json').toString());
+            var deployer = compiled['DeployENS'];
+            var deployensContract = web3.eth.contract(deployer.interface);
 // /*       
             deployensContract.new(
                 {
                  from: accts[0],
-                 // try prepending 0x when deploying...
-                 data: "0x" + deployer.bytecode,
+                 data: deployer.bytecode,
                  gas: 4700000
                 }, function(err, contract) {
                     if(contract.address !== undefined) {
@@ -88,13 +87,13 @@ describe('InitialRegistrar', function(){
         });
     });
 
+    var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
     
     describe('#startAuction()', function(){
         accounts = web3.eth.accounts;
-        var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
         
-        it('Should return an error when the name is too short', function(done) {
-            registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {                    
+        it('Should return an error when the name is too short', function(done) {            //  'function (name){\n    var hash = sha3(name);\n\n    var callback = undefined;\n    \n... (length: 835)'
+            registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {
                     assert.equal(err, InitialRegistrar.TooShort);
                     done();
                 }
@@ -104,20 +103,13 @@ describe('InitialRegistrar', function(){
         it('Should set an `Open` node to status `Auction`', function(done) {
             registrar.startAuction('foobarbaz', {from: accounts[0]}, 
                 function (err, result) {
+                    debugger;
                     hash = sha3('foobarbaz');
-                    registrar.contract.entries(hash, function (err, result) {
-                        console.log("err:", err);
-                        console.log("result:", result);
-                        var status = result[1];
+                    registrar.contract.entries.call(hash, function (err, result) {
+                        var status = result[0].toString();
                         assert.equal(status, 1);
                         done();
                     });
-// registrar.contract.entries(hash, function (err, result) {
-//     console.log(result);
-//     var status = result;
-//     assert.equal(status, 1);
-//     done();
-// });
                 }
             );
         });

@@ -63,7 +63,6 @@ InitialRegistrar.prototype.startAuction = function(name){
         if (name.length < this.min_length) {
             callback(InitialRegistrar.TooShort, null);
         } else {
-            //something is wrong here
             this.contract.startAuction(hash, params, callback);
         }
     }
