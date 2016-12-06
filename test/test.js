@@ -146,44 +146,54 @@ describe('InitialRegistrar', function(){
 */
 
 /*
-2. #shaBid()
+    #getStatus
+    * request from @ferni to create a status check method for a given name
+    * 
+*/
+
+/* 
+    #normalize
+    * should normalize the name via nameprep 
+
+*/
+
+
+/*
+    #shaBid()
     * should create valid bids
 */
 
 /*
-3. #newBid()
+    #newBid()
     * should...
 */
 
 /*
-4. #unsealBid()
+    #unsealBid()
     * should...
 */
 
 /*
-5. #cancelBid()
+    #cancelBid()
     * should...
 */
 
 /*
-6. #finalizeAuction()
+    #finalizeAuction()
     * should...
 */
 
 /*
-7. #transfer()
+    #transfer()
     * should...
 */
 
 /*
-8. #releaseDeed()
+    #releaseDeed()
     * should...
 */
 
 /*
-9. #invalidateName()
+    #invalidateName()
     * should...
 */
-
-
-// console.log("end");
