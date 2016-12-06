@@ -50,9 +50,12 @@ InitialRegistrar.prototype.startAuction = function(name){
     }
 
     var params = {};
-    // If we have parameters for the web3 request:
-    if((callback && arguments.length == 3) || (!callback && arguments.length == 2))
+    // test to see if we have parameters for the web3 request:
+    if(callback && arguments.length == 3) {
         params = arguments[arguments.length - 2];
+    } else if(!callback && arguments.length == 2) {
+        params = arguments[arguments.length - 1];
+    }
 
     if(!callback) {
         if (name.length < this.min_length) {
@@ -67,6 +70,30 @@ InitialRegistrar.prototype.startAuction = function(name){
         }
     }
 };
+
+function hashIfValid (name) {
+    if (name.length < this.min_length )
+        throw InitialRegistrar.TooShort;
+    return sha3(name);
+}
+
+
+/**
+ * startAuctions opens multiple auctions at once
+ * @param {array} names A list of names to start auctions on
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns The resolved address if callback is not supplied.
+ */
+InitialRegistrar.prototype.startAuctions = function(names){
+    var hashes = [];
+    for (name in names){
+        
+    }
+
+
+};
+
 
 
 module.exports = InitialRegistrar;

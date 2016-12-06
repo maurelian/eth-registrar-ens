@@ -101,9 +101,9 @@ describe('InitialRegistrar', function(){
         });
 
         it('Should set an `Open` node to status `Auction`', function(done) {
+                    debugger;
             registrar.startAuction('foobarbaz', {from: accounts[0]}, 
                 function (err, result) {
-                    debugger;
                     hash = sha3('foobarbaz');
                     registrar.contract.entries.call(hash, function (err, result) {
                         var status = result[0].toString();
