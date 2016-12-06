@@ -71,29 +71,44 @@ InitialRegistrar.prototype.startAuction = function(name){
     }
 };
 
-function hashIfValid (name) {
-    if (name.length < this.min_length )
-        throw InitialRegistrar.TooShort;
-    return sha3(name);
-}
-
-
 /**
  * startAuctions opens multiple auctions at once
- * @param {array} names A list of names to start auctions on
+ * @param {array} names An array of names to start auctions on
+ * @param {object} options An optional dict of parameters to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  * @returns The resolved address if callback is not supplied.
  */
 InitialRegistrar.prototype.startAuctions = function(names){
-    var hashes = [];
-    for (name in names){
-        
+    var hashes = names.map(sha3);
+    var invalidNames = names.filter(
+        function(name){ return name.length < this.min_length;}, this);
+    
+    var callback = undefined;
+
+    if (typeof(arguments[arguments.length-1])=='function'){
+        callback = arguments[arguments.length-1];
     }
 
+    var params = {};
+    if (callback && arguments.length==3){
+        params = arguments[arguments.length-2];
+    } else if (!callback && arguments.length==2){
+        params = arguments[arguments.length-1];
+    }
+
+    if (!callback) {
+        if (invalidNames.length > 0)
+            throw InitialRegistrar.TooShort;
+        return this.contract.startAuctions(hashes, params);
+    } else {
+        if (invalidNames.length > 0)
+            callback(InitialRegistrar.TooShort, null);
+        else
+            this.contract.startAuctions(hashes, params, callback);
+    }
 
 };
-
 
 
 module.exports = InitialRegistrar;

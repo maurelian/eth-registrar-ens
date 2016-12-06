@@ -101,7 +101,6 @@ describe('InitialRegistrar', function(){
         });
 
         it('Should set an `Open` node to status `Auction`', function(done) {
-                    debugger;
             registrar.startAuction('foobarbaz', {from: accounts[0]}, 
                 function (err, result) {
                     hash = sha3('foobarbaz');
@@ -113,9 +112,28 @@ describe('InitialRegistrar', function(){
                 }
             );
         });
+        it('Should return an error if a node has any status other than `Open`', function(done) {
+            registrar.startAuction('foobarbaz', {from: accounts[0]}, 
+                function (err, result) {
+                    assert.ok(err.toString().indexOf('invalid JUMP') != -1, err);
+                    done();
+                }
+            );
+        });
 
     }); 
+
+    describe('#startAuctions()', function(){
+        it('Should return an error when any name is too short', function(done) {
+            var names = ["abcdefghij", "abcdefghi", "abcdefgh", "abcd"];
+            registrar.startAuctions(names, {from:accounts[0] , gas: 4700000}, function(err, results){
+                assert.equal(err, InitialRegistrar.TooShort);
+                done();
+            });  
+        });
+    });
 }); 
+
 
 
 /* Snippet for creating new unit tests
