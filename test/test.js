@@ -88,7 +88,6 @@ describe('InitialRegistrar', function(){
     });
 
     var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
-    
     describe('#startAuction()', function(){
         accounts = web3.eth.accounts;
         
@@ -123,6 +122,15 @@ describe('InitialRegistrar', function(){
 
     }); 
 
+    describe('#checkStatus()', function(){
+        it('Should return the correct status of a name', function(){
+            // a name being auctioned
+            assert.equal(registrar.checkStatus("foobarbaz"), 1); 
+            // a name NOT being auctioned
+            assert.equal(registrar.checkStatus("thisnameisopen"), 0); 
+        });
+    });
+
     describe('#startAuctions()', function(){
         it('Should return an error when any name is too short', function(done) {
             var names = ["abcdefghij", "abcdefghi", "abcdefgh", "abcd"];
@@ -130,6 +138,33 @@ describe('InitialRegistrar', function(){
                 assert.equal(err, InitialRegistrar.TooShort);
                 done();
             });  
+        });
+
+        it('V1: Should set multiple valid nodes to status Auction', function(done){
+            var names = ["aaa1111", "bbb2221", "ccc3331", "ddd4441"];
+            var hashes = names.map(sha3);
+            // this test currently only checks one node
+            registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
+                registrar.contract.entries.call(hashes[0], function (err, result) {
+                    var status = result[0].toNumber();
+                    assert.equal(status, 1);
+                    done();
+                });
+            });
+        }); 
+
+        it('V2: Should set multiple valid nodes to status Auction', function(done){
+            var names = ["bbb1111", "bbb2222", "bbb3333", "bbb4444"];
+            registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
+                console.log("err", err);
+                console.log("result", result)
+                console.log(names);
+                names.forEach(function(name){
+                    console.log("name", name, registrar.checkStatus(name));
+                    assert.equal(registrar.checkStatus(name), 1);
+                })
+                done()
+            });
         });
     });
 }); 

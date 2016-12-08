@@ -82,19 +82,20 @@ InitialRegistrar.prototype.startAuction = function(name){
 InitialRegistrar.prototype.startAuctions = function(names){
     var hashes = names.map(sha3);
     var invalidNames = names.filter(
-        function(name){ return name.length < this.min_length;}, this);
+        function(name){ return name.length < this.min_length;}, this
+    );
     
     var callback = undefined;
 
-    if (typeof(arguments[arguments.length-1])=='function'){
-        callback = arguments[arguments.length-1];
+    if (typeof(arguments[arguments.length - 1]) == 'function'){
+        callback = arguments[arguments.length - 1];
     }
 
     var params = {};
-    if (callback && arguments.length==3){
-        params = arguments[arguments.length-2];
-    } else if (!callback && arguments.length==2){
-        params = arguments[arguments.length-1];
+    if (callback && arguments.length == 3){
+        params = arguments[arguments.length - 2];
+    } else if (!callback && arguments.length == 2){
+        params = arguments[arguments.length - 1];
     }
 
     if (!callback) {
@@ -107,8 +108,32 @@ InitialRegistrar.prototype.startAuctions = function(names){
         else
             this.contract.startAuctions(hashes, params, callback);
     }
-
 };
+
+// Should extend this to make all entry details accessible
+/**
+ * checkStatus returns the status of a name
+ * @param {string} name The name to check
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns A number corresponding to the status of the name
+ */
+InitialRegistrar.prototype.checkStatus = function(name){
+    var hash = sha3(name);
+
+    var callback = undefined;
+    if (typeof arguments[arguments.length - 1] == 'function'){
+        callback = arguments[arguments.length - 1];
+    }
+
+    if (!callback){
+        return this.contract.entries(hash)[0].toNumber();
+    } else {
+
+        this.contract.entries(hash, callback(err, result[0].toNumber()));
+    }
+};
+
 
 
 module.exports = InitialRegistrar;
