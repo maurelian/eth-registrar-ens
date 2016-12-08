@@ -23,7 +23,8 @@
   },
   "homepage": "https://github.com/maurelian/dot-eth-js#readme",
   "dependencies": {
-    "ethereum-ens": "^0.1.1"
+    "ethereum-ens": "^0.1.1",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "ethereumjs-testrpc": "^3.0.2",
