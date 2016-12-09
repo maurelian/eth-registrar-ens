@@ -113,19 +113,6 @@ describe('InitialRegistrar', function(){
             );
         });
     }); 
-    
-    describe('#checkStatus()', function(){
-        it('Should return the correct status of a name', function(done){
-            // a name being auctioned
-            assert.equal(registrar.checkStatus("foobarbaz"), 1); 
-            // a name NOT being auctioned
-            assert.equal(registrar.checkStatus("thisnameisopen"), 0); 
-            registrar.checkStatus("foobarbaz", function(err, result) {
-                assert.equal(result[0].toString(), 1);
-                done()
-            })
-        });
-    });
 
     describe('#getEntry()', function(){
         it('Should return the correct properties of a name', function(done){
@@ -134,7 +121,19 @@ describe('InitialRegistrar', function(){
             // a name NOT being auctioned
             assert.equal(registrar.getEntry("thisnameisopen").status, 0); 
             // test async too
+            registrar.getEntry("foobarbaz", function(err, result) {
+                console.log(result);
+                assert.equal(result.name, "foobarbaz"); 
+                assert.equal(result.status, 1); 
+                assert.equal(result.deed, '0x0000000000000000000000000000000000000000')
+                assert.ok(result.registrationDate - new Date(), result.registrationDate);
+                assert.equal(result.value, 0);
+                assert.equal(result.highestBid, 0);
+            });     
+
             registrar.getEntry("thisnameisopen", function(err, result) {
+                console.log(result);
+                assert.equal(result.name, "thisnameisopen"); 
                 assert.equal(result.status, 0); 
                 assert.equal(result.deed, '0x0000000000000000000000000000000000000000')
                 assert.equal(result.registrationDate, 0);
@@ -144,8 +143,6 @@ describe('InitialRegistrar', function(){
             });     
         });
     });
-
-    debugger;
 
     describe('#startAuctions()', function(){
         it('Should return an error when any name is too short', function(done) {
@@ -173,7 +170,7 @@ describe('InitialRegistrar', function(){
             var names = ["bbb1111", "bbb2222", "bbb3333", "bbb4444"];
             registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
                 names.forEach(function(name){
-                    assert.equal(registrar.checkStatus(name), 1);
+                    assert.equal(registrar.getEntry(name).status, 1);
                 })
                 done()
             });
