@@ -41,8 +41,7 @@ function namePrep (name) {
 */
 
 InitialRegistrar.prototype.startAuction = function(name){
-    var hash = sha3(name);
-
+    var hash = this.web3.sha3(name);
     var callback = undefined;
     
     if(typeof arguments[arguments.length - 1] == 'function') {
@@ -61,6 +60,7 @@ InitialRegistrar.prototype.startAuction = function(name){
         if (name.length < this.min_length) {
             throw InitialRegistrar.TooShort;
         }
+        // the async version reports an invalid opcode
         return this.contract.startAuction(hash, params);
     } else {
         if (name.length < this.min_length) {
@@ -80,7 +80,7 @@ InitialRegistrar.prototype.startAuction = function(name){
  * @returns The resolved address if callback is not supplied.
  */
 InitialRegistrar.prototype.startAuctions = function(names){
-    var hashes = names.map(sha3);
+    var hashes = names.map(this.web3.sha3);
     var invalidNames = names.filter(
         function(name){ return name.length < this.min_length;}, this
     );
@@ -119,7 +119,7 @@ InitialRegistrar.prototype.startAuctions = function(names){
  * @returns A number corresponding to the status of the name
  */
 InitialRegistrar.prototype.checkStatus = function(name){
-    var hash = sha3(name);
+    var hash = this.web3.sha3(name);
 
     var callback = undefined;
     if (typeof arguments[arguments.length - 1] == 'function'){

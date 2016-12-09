@@ -1,12 +1,3 @@
-/*
-* Import solidity (Registar code, ENS)
-* Connect to a node
-* Compile and deploy solidity code. 
-* Instantiate contracts in web3
-* Run tests
-*/
-
-
 var InitialRegistrar = require('../index.js');
 var ENS = require('ethereum-ens');
 var CryptoJS = require('crypto-js');
@@ -90,8 +81,7 @@ describe('InitialRegistrar', function(){
     var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
     describe('#startAuction()', function(){
         accounts = web3.eth.accounts;
-        
-        it('Should return an error when the name is too short', function(done) {            //  'function (name){\n    var hash = sha3(name);\n\n    var callback = undefined;\n    \n... (length: 835)'
+        it('Should return an error when the name is too short', function(done) {            
             registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {
                     assert.equal(err, InitialRegistrar.TooShort);
                     done();
@@ -101,8 +91,8 @@ describe('InitialRegistrar', function(){
 
         it('Should set an `Open` node to status `Auction`', function(done) {
             registrar.startAuction('foobarbaz', {from: accounts[0]}, 
-                function (err, result) {
-                    hash = sha3('foobarbaz');
+                function (err, txid) {
+                    hash = web3.sha3('foobarbaz');
                     registrar.contract.entries.call(hash, function (err, result) {
                         var status = result[0].toString();
                         assert.equal(status, 1);
@@ -142,7 +132,7 @@ describe('InitialRegistrar', function(){
 
         it('V1: Should set multiple valid nodes to status Auction', function(done){
             var names = ["aaa1111", "bbb2221", "ccc3331", "ddd4441"];
-            var hashes = names.map(sha3);
+            var hashes = names.map(web3.sha3);
             // this test currently only checks one node
             registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
                 registrar.contract.entries.call(hashes[0], function (err, result) {
@@ -156,11 +146,7 @@ describe('InitialRegistrar', function(){
         it('V2: Should set multiple valid nodes to status Auction', function(done){
             var names = ["bbb1111", "bbb2222", "bbb3333", "bbb4444"];
             registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
-                console.log("err", err);
-                console.log("result", result)
-                console.log(names);
                 names.forEach(function(name){
-                    console.log("name", name, registrar.checkStatus(name));
                     assert.equal(registrar.checkStatus(name), 1);
                 })
                 done()
