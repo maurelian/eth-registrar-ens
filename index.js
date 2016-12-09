@@ -40,6 +40,32 @@ function namePrep (name) {
 }
 */
 
+// Should extend this to make all entry details accessible
+/**
+ * checkStatus returns the status of a name
+ * @param {string} name The name to check
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns A number corresponding to the status of the name
+ */
+InitialRegistrar.prototype.checkStatus = function(name){
+    var hash = this.web3.sha3(name);
+
+    var callback = undefined;
+    if (typeof arguments[arguments.length - 1] == 'function'){
+        callback = arguments[arguments.length - 1];
+    }
+
+    if (!callback){
+        return this.contract.entries(hash)[0].toNumber();
+    } else {
+
+        this.contract.entries(hash, callback(err, result[0].toNumber()));
+    }
+};
+
+
+
 InitialRegistrar.prototype.startAuction = function(name){
     var hash = this.web3.sha3(name);
     var callback = undefined;
@@ -109,31 +135,6 @@ InitialRegistrar.prototype.startAuctions = function(names){
             this.contract.startAuctions(hashes, params, callback);
     }
 };
-
-// Should extend this to make all entry details accessible
-/**
- * checkStatus returns the status of a name
- * @param {string} name The name to check
- * @param {function} callback An optional callback; if specified, the
- *        function executes asynchronously.
- * @returns A number corresponding to the status of the name
- */
-InitialRegistrar.prototype.checkStatus = function(name){
-    var hash = this.web3.sha3(name);
-
-    var callback = undefined;
-    if (typeof arguments[arguments.length - 1] == 'function'){
-        callback = arguments[arguments.length - 1];
-    }
-
-    if (!callback){
-        return this.contract.entries(hash)[0].toNumber();
-    } else {
-
-        this.contract.entries(hash, callback(err, result[0].toNumber()));
-    }
-};
-
 
 
 module.exports = InitialRegistrar;

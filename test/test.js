@@ -79,6 +79,8 @@ describe('InitialRegistrar', function(){
     });
 
     var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
+
+    
     describe('#startAuction()', function(){
         accounts = web3.eth.accounts;
         it('Should return an error when the name is too short', function(done) {            
@@ -109,9 +111,8 @@ describe('InitialRegistrar', function(){
                 }
             );
         });
-
     }); 
-
+    
     describe('#checkStatus()', function(){
         it('Should return the correct status of a name', function(){
             // a name being auctioned
@@ -120,6 +121,7 @@ describe('InitialRegistrar', function(){
             assert.equal(registrar.checkStatus("thisnameisopen"), 0); 
         });
     });
+
 
     describe('#startAuctions()', function(){
         it('Should return an error when any name is too short', function(done) {
