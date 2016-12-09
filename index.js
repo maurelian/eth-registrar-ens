@@ -60,11 +60,44 @@ InitialRegistrar.prototype.checkStatus = function(name){
         return this.contract.entries(hash)[0].toNumber();
     } else {
 
-        this.contract.entries(hash, callback(err, result[0].toNumber()));
+        this.contract.entries(hash, callback);
     }
 };
 
+/**
+ * Constructs a new Entry instance corresponding to a name.
+ * @class
+ * @param {object} web3 A web3 instance to use to communicate with the blockchain.
+ * @param {address} address The address of the ENS registry.
+ */
+function Entry(status, deed, registrationDate, value, highestBid){
+    this.status = status;
+    this.deed = deed;
+    this.registrationDate = registrationDate;
+    this.value = value;
+    this.highestBid = highestBid;
+}
 
+
+/**
+ * getEntry returns the properties of the entry for a given a name
+ * @param {string} name The name to get the entry for
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns An Entry object
+ */
+InitialRegistrar.prototype.getEntry = function(name, callback){
+    var hash = this.web3.sha3(name);
+
+    var e = this.contract.entries(hash);
+    var entry = new Entry(e[0].toString(), e[1], e[2].toString(), e[3].toString(), e[4].toString());
+
+    if (callback){
+        callback(null, entry);
+    } else {
+        return entry;
+    }
+};
 
 InitialRegistrar.prototype.startAuction = function(name){
     var hash = this.web3.sha3(name);
