@@ -222,20 +222,25 @@ describe('InitialRegistrar', function(){
         
     });
 
-    describe('#submitShaBid()', function(){
-        it('Should combine shaBid and newBid', function(done){
-            registrar.newShaBid
-        });
+    describe('#submitShaBid()' , function(){
+        it('Should combine shaBid and newBid'); //pending
+        function placeholder(done){
+            var bid_params = { 
+                name: "foobarbaz",
+                owner: accounts[0],
+                value: web3.toWei(1, 'ether'), 
+                deposit: web3.toWei(2, 'ether'), 
+                secret: "secret"
+            }
+            registrar.newShaBid(bid_params, function(err, result){
+            });
+        };
     });
 
     describe('#unsealBid()', function(){
         it('Should replace the sealedBid Deed with an empty Deed')
-        it('Should create a new Entry')
+        it('Should create a new Entry if it is the current highest bid')
     });
-
-
-
-
 }); 
 
 
