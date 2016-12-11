@@ -78,11 +78,11 @@ describe('InitialRegistrar', function(){
         });
     });
 
-    var registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
+    registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
+    accounts = web3.eth.accounts;
 
     
     describe('#startAuction()', function(){
-        accounts = web3.eth.accounts;
         it('Should return an error when the name is too short', function(done) {            
             registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {
                     assert.equal(err, InitialRegistrar.TooShort);
