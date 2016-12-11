@@ -104,8 +104,8 @@ describe('InitialRegistrar', function(){
             );
         });
 
-        it('Should return an error if given a name with any status other than `Open`', function(done) {
-            registrar.startAuction('foobarbaz', {from: accounts[0]}, 
+        it('Should return an error if given a nameprepped-name with any status other than `Open`', function(done) {
+            registrar.startAuction('FOOBarbaz', {from: accounts[0]}, 
                 function (err, result) {
                     assert.ok(err.toString().indexOf('invalid JUMP') != -1, err);
                     done();
@@ -140,6 +140,9 @@ describe('InitialRegistrar', function(){
                 done();
             });     
         });
+        it('Nameprep should ensure the same entry is returned regardless of capitalization', function(){
+            assert.equal(registrar.getEntry("foobarbaz").hash, registrar.getEntry("FOOBarbaz").hash)
+        })
     });
 
     describe('#startAuctions()', function(){
@@ -151,20 +154,7 @@ describe('InitialRegistrar', function(){
             });  
         });
 
-        it('V1: Should set multiple valid nodes to status Auction', function(done){
-            var names = ["aaa1111", "bbb2221", "ccc3331", "ddd4441"];
-            var hashes = names.map(web3.sha3);
-            // this test currently only checks one node
-            registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
-                registrar.contract.entries.call(hashes[0], function (err, result) {
-                    var status = result[0].toNumber();
-                    assert.equal(status, 1);
-                    done();
-                });
-            });
-        }); 
-
-        it('V2: Should set multiple valid nodes to status Auction', function(done){
+        it('Should set multiple valid nodes to status Auction', function(done){
             var names = ["bbb1111", "bbb2222", "bbb3333", "bbb4444"];
             registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
                 names.forEach(function(name){
@@ -176,9 +166,23 @@ describe('InitialRegistrar', function(){
     });
     
     describe('#shaBid()', function(){
-        this.timeout(10000);
+        var foobarbazBidHash = null;
         it('Should return a valid 32 byte hashed bid', function(done) {
-            debugger;
+            // This is just a randomly generated address from TestRPC, the owner does not need to be your address
+            // but presumably you want it to be.
+            var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
+            // var secret = web3.sha3('secret');
+            var secret = 'secret';
+            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+            var value = web3.toWei(1, 'ether'); 
+            registrar.shaBid('foobarbaz', testOwner, value, secret, function(err,result){
+                if (err) done(err);
+                assert.equal(result, bid);
+                foobarbazBidHash = result; 
+                done(err);
+            });
+        });
+        it('Should return the same hash for identical Nameprep names', function(done){
             // This is just a randomly generated address from TestRPC, the owner does not need to be your address
             // but presumably you want it to be.
             var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
@@ -186,12 +190,15 @@ describe('InitialRegistrar', function(){
             var secret = 'secret';
             var bid= "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
             var value = web3.toWei(1, 'ether'); 
-            registrar.shaBid('foobarbaz', testOwner, value, secret, function(err,result){
+            registrar.shaBid('FOOBARBAZ', testOwner, value, secret, function(err,result){
                 if (err) done(err);
-                assert.equal(result, bid);
+                assert.equal(result, foobarbazBidHash);
                 done(err);
-            });
+            }); 
         });
+
+
+
         it('Should save the bid params to a local JSON file');
         /*it('Should save the bid params to a local file', function (done) {
             fs.readFile('/.bids', function(err, result) {
