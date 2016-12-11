@@ -155,34 +155,57 @@ InitialRegistrar.prototype.startAuctions = function(names){
     }
 };
 
-/*
-* A full outline of planned methods:
-
 
 /**
  * shaBid 
  * @param {string} name 
  * @param {string} address An optional owner address; defaults to sender
- * @param {number} value The value of your bid
- * @param {secret} secret A randomly generated hash 
+ * @param {number} value The value of your bid in wei
+ * @param {secret} secret An optional random value
  * @returns the sealed bid hash string
- *
-InitialRegistrar.prototype.startAuctions = function(name, owner, value, secret){
+ */
+// How should we better handle secret generation and storage?
+// it could be abstracted away and handle generation, storage agnd retrieval. 
+// var bid = ethRegistrar.shaBid(web3.sha3('name'), eth.accounts[0], web3.toWei(1, 'ether'), web3.sha3('secret'));
+InitialRegistrar.prototype.shaBid = function(name, owner, value, secret, callback){
+    var hash = this.web3.sha3(name);
+    var hexSecret = this.web3.sha3(secret);
 
-
+    if (!callback){
+        return this.contract.shaBid(hash, owner, value, hexSecret);
+    } else {
+        this.contract.shaBid(hash, owner, value, hexSecret, callback);
+    }
 };
 
 /**
  * newBid 
  * @param {string} bid 
- * @param {object} options An optional dict of parameters to pass to web3.
+ * @param {object} options A dict of parameters to pass to web3. An amount must be included.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  * @returns The transaction ID if callback is not supplied.
- *
-InitialRegistrar.prototype.newBid = function(bid){
+ */
+/* At presnt this provides very little utility, aside from putting the method where you would expect it to be.
+ * More value would be in: 
+    * creating the bid hash string
+    * accepting the value as a "deposit" variable 
+    * accepting a bid object:
+    { 
+        name: "name",
+        owner: "0xaddress",
+        value: 1, 
+        deposit: 2, 
+        secret: "secret"
+    }
+*/
+InitialRegistrar.prototype.newBid = function(bid, params, callback){
 
-
+    if (!callback){
+        return this.contract.newBid(bid, params);
+    } else {
+        this.contract.newBid(bid, params, callback);
+    }
 };
 
 /**

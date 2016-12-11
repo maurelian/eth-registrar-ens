@@ -30,29 +30,29 @@ web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 
 describe('InitialRegistrar', function(){
-      before(function(done){
-        this.timeout(20000);
-        // Deploy the ENS registry and registrar
-        web3.eth.getAccounts(function(err, accts){
-            accounts = accts;
-            /*
-            // Use this block for a fresh compile and save, or for testing a fresh install
-            // Otherwise it's too slow for dev processes.
-            var input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
-            var output = solc.compile(input, 1);
-            var compiled = {};
-            for (var contractName in output.contracts) {
-                // code and ABI that are needed by web3 
-                compiled[contractName] = {};
-                compiled[contractName].bytecode = output.contracts[contractName].bytecode;
-                compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
-            }
-            fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
-            */
-            // Use to speed up the testing process during development: 
-            var compiled = JSON.parse(fs.readFileSync('test/contracts.json').toString());
-            var deployer = compiled['DeployENS'];
-            var deployensContract = web3.eth.contract(deployer.interface);
+        before(function(done){
+            this.timeout(20000);
+            // Deploy the ENS registry and registrar
+            web3.eth.getAccounts(function(err, accts){
+                accounts = accts;
+                /*
+                // Use this block for a fresh compile and save, or for testing a fresh install
+                // Otherwise it's too slow for dev processes.
+                var input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
+                var output = solc.compile(input, 1);
+                var compiled = {};
+                for (var contractName in output.contracts) {
+                    // code and ABI that are needed by web3 
+                    compiled[contractName] = {};
+                    compiled[contractName].bytecode = output.contracts[contractName].bytecode;
+                    compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
+                }
+                fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
+                */
+                // Use to speed up the testing process during development: 
+                var compiled = JSON.parse(fs.readFileSync('test/contracts.json').toString());
+                var deployer = compiled['DeployENS'];
+                var deployensContract = web3.eth.contract(deployer.interface);
 // /*       
             deployensContract.new(
                 {
@@ -174,7 +174,70 @@ describe('InitialRegistrar', function(){
             });
         });
     });
+    
+    describe('#shaBid()', function(){
+        this.timeout(10000);
+        it('Should return a valid 32 byte hashed bid', function(done) {
+            debugger;
+            // This is just a randomly generated address from TestRPC, the owner does not need to be your address
+            // but presumably you want it to be.
+            var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
+            // var secret = web3.sha3('secret');
+            var secret = 'secret';
+            var bid= "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+            var value = web3.toWei(1, 'ether'); 
+            registrar.shaBid('foobarbaz', testOwner, value, secret, function(err,result){
+                if (err) done(err);
+                assert.equal(result, bid);
+                done(err);
+            });
+        });
+        it('Should save the bid params to a local JSON file');
+        /*it('Should save the bid params to a local file', function (done) {
+            fs.readFile('/.bids', function(err, result) {
+                if (err) done(err);
+                var bids = JSON.parse(result);
+                var bid = bids['foobarbaz'];
+                var secret = bid.secret;
+                assert.ok(bid != null);
+                assert.ok(secret != null);
+                done();
+            });
+        });
+        */
+    });    
+
+    describe('#newBid()', function(){
+        it('Should create a new sealedBid Deed holding the value of deposit', function(done){
+            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606";
+            var deposit = web3.toWei(2, 'ether');
+            registrar.newBid(bid, {from: accounts[0], value: deposit }, function(err, result){
+                registrar.contract.sealedBids.call(bid, function(err, result){
+                    assert.ok(result != "0x0000000000000000000000000000000000000000", result);
+                    assert.equal(web3.eth.getBalance(result), deposit);
+                    done();
+                });
+            });
+        });
+        
+    });
+
+    describe('#submitShaBid()', function(){
+        it('Should combine shaBid and newBid', function(done){
+            registrar.newShaBid
+        });
+    });
+
+    describe('#unsealBid()', function(){
+        it('Should replace the sealedBid Deed with an empty Deed')
+        it('Should create a new Entry')
+    });
+
+
+
+
 }); 
+
 
 
 
@@ -187,23 +250,12 @@ describe('InitialRegistrar', function(){
     });
 */
 
-/*
-    #getStatus
-    * request from @ferni to create a status check method for a given name
-    * 
-*/
-
 /* 
     #normalize
     * should normalize the name via nameprep 
 
 */
 
-
-/*
-    #shaBid()
-    * should create valid bids
-*/
 
 /*
     #newBid()
