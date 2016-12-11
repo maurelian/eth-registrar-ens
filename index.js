@@ -76,6 +76,15 @@ InitialRegistrar.prototype.getEntry = function(name, callback){
     }
 };
 
+
+/**
+ * startAuctions opens an auction
+ * @param {array} names An array of names to start auctions on
+ * @param {object} options An optional dict of parameters to pass to web3.
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns The resolved address if callback is not supplied.
+ */
 InitialRegistrar.prototype.startAuction = function(name){
     var hash = this.web3.sha3(name);
     var callback = undefined;
@@ -108,7 +117,8 @@ InitialRegistrar.prototype.startAuction = function(name){
 };
 
 /**
- * startAuctions opens multiple auctions at once
+ * startAuctions opens multiple auctions at once, this allows you to open multiple 
+ auctions, to obscure which one you are most interested in.
  * @param {array} names An array of names to start auctions on
  * @param {object} options An optional dict of parameters to pass to web3.
  * @param {function} callback An optional callback; if specified, the
@@ -146,6 +156,121 @@ InitialRegistrar.prototype.startAuctions = function(names){
     }
 };
 
+
+/**
+ * shaBid 
+ * @param {string} name 
+ * @param {string} address An optional owner address; defaults to sender
+ * @param {number} value The value of your bid in wei
+ * @param {secret} secret An optional random value
+ * @returns the sealed bid hash string
+ */
+// How should we better handle secret generation and storage?
+// it could be abstracted away and handle generation, storage agnd retrieval. 
+// var bid = ethRegistrar.shaBid(web3.sha3('name'), eth.accounts[0], web3.toWei(1, 'ether'), web3.sha3('secret'));
+InitialRegistrar.prototype.shaBid = function(name, owner, value, secret, callback){
+    var hash = this.web3.sha3(name);
+    var hexSecret = this.web3.sha3(secret);
+
+    if (!callback){
+        return this.contract.shaBid(hash, owner, value, hexSecret);
+    } else {
+        this.contract.shaBid(hash, owner, value, hexSecret, callback);
+    }
+};
+
+/**
+ * newBid 
+ * @param {string} bid 
+ * @param {object} options A dict of parameters to pass to web3. An amount must be included.
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns The transaction ID if callback is not supplied.
+ */
+/* At presnt this provides very little utility, aside from putting the method where you would expect it to be.
+ * More value would be in: 
+    * creating the bid hash string
+    * accepting the value as a "deposit" variable 
+    * accepting a bid object:
+    { 
+        name: "name",
+        owner: "0xaddress",
+        value: 1, 
+        deposit: 2, 
+        secret: "secret"
+    }
+*/
+InitialRegistrar.prototype.newBid = function(bid, params, callback){
+
+    if (!callback){
+        return this.contract.newBid(bid, params);
+    } else {
+        this.contract.newBid(bid, params, callback);
+    }
+};
+
+/**
+ * unsealBid 
+ * @param {string} name 
+ * @param {string} address An optional owner address; defaults to sender
+ * @param {number} value The value of your bid
+ * @param {secret} secret A randomly generated hash 
+ * @param {object} options An optional dict of parameters to pass to web3.
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ * @returns The transaction ID if callback is not supplied.
+ *
+InitialRegistrar.prototype.newBid = function(name, owner, value, secret){
+
+};
+
+/**
+ * finalizeAuction Finalize an auction after the registration date has passed
+ * @param {string} name 
+ *
+InitialRegistrar.prototype.finalizeAuction = function(name){
+
+}; 
+
+/**
+ * transfer The owner of a domain may transfer it to someone else at any time.
+ * @param {string} name The node to transfer
+ * @param {string} newOwner The address to transfer ownership to
+ * (also optional params and callback)
+InitialRegistrar.prototype.transfer = function(name, newOwner){
+    
+} 
+
+/**
+ * releaseDeed After some time, the owner can release the property and get their ether back
+ * @param _hash The node to release
+ *
+InitialRegistrar.prototype.releaseDeed = function(name){
+    
+}
+
+/**
+ *  Submit a name 6 characters long or less. If it has been registered, 
+ * the submitter will earn 10% of the deed value. We are purposefully
+ * handicapping the simplified registrar as a way to force it into being restructured
+ * in a few years.
+ * @param {string} name An invalid name to search for in the registry.
+ * 
+ *
+InitialRegistrar.prototype.invalidateName = function(name){
+
+};
+
+    
+/**
+ *  Transfers the deed to the current registrar, if different from this one.
+ * Used during the upgrade process to a permanent registrar.
+ * @param _hash The name hash to transfer.
+ *
+function transferRegistrars(bytes32 _hash) onlyOwner(_hash);
+
+
+*/
 
 module.exports = InitialRegistrar;
 
