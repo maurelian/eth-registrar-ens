@@ -122,7 +122,6 @@ describe('InitialRegistrar', function(){
             assert.equal(registrar.getEntry("thisnameisopen").status, 0); 
             // test async too
             registrar.getEntry("foobarbaz", function(err, result) {
-                console.log(result);
                 assert.equal(result.name, "foobarbaz"); 
                 assert.equal(result.status, 1); 
                 assert.equal(result.deed, '0x0000000000000000000000000000000000000000')
@@ -132,7 +131,6 @@ describe('InitialRegistrar', function(){
             });     
 
             registrar.getEntry("thisnameisopen", function(err, result) {
-                console.log(result);
                 assert.equal(result.name, "thisnameisopen"); 
                 assert.equal(result.status, 0); 
                 assert.equal(result.deed, '0x0000000000000000000000000000000000000000')
