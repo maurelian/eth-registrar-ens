@@ -204,12 +204,20 @@ InitialRegistrar.prototype.shaBid = function(name, owner, value, secret, callbac
         secret: "secret"
     }
 */
-InitialRegistrar.prototype.newBid = function(bid, params, callback){
+InitialRegistrar.NoDeposit = Error("You must specify a deposit amount greater than the value of your bid");
 
+InitialRegistrar.prototype.newBid = function(bid, params, callback){
     if (!callback){
+        if(!params.value){
+           throw InitialRegistrar.NoDeposit;
+        }
         return this.contract.newBid(bid, params);
     } else {
-        this.contract.newBid(bid, params, callback);
+        if(!params.value){
+            callback(InitialRegistrar.NoDeposit, null);
+        } else {
+            this.contract.newBid(bid, params, callback);
+        }
     }
 };
 
@@ -223,8 +231,8 @@ InitialRegistrar.prototype.newBid = function(bid, params, callback){
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  * @returns The transaction ID if callback is not supplied.
- *
-InitialRegistrar.prototype.newBid = function(name, owner, value, secret){
+ */
+InitialRegistrar.prototype.unsealBid = function(name, owner, value, secret, callback){
 
 };
 

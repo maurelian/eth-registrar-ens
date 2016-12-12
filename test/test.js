@@ -215,9 +215,15 @@ describe('InitialRegistrar', function(){
     });    
 
     describe('#newBid()', function(){
+        var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606";
+        var deposit = web3.toWei(2, 'ether');
+        it('Should throw an error if a deposit amount is not specified', function(done){
+            registrar.newBid(bid, {from: accounts[0]}, function(err, result){
+                assert.equal(err, InitialRegistrar.NoDeposit);
+                done();
+            });   
+        });
         it('Should create a new sealedBid Deed holding the value of deposit', function(done){
-            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606";
-            var deposit = web3.toWei(2, 'ether');
             registrar.newBid(bid, {from: accounts[0], value: deposit }, function(err, result){
                 registrar.contract.sealedBids.call(bid, function(err, result){
                     assert.ok(result != "0x0000000000000000000000000000000000000000", result);
