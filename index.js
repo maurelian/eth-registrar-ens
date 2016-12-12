@@ -66,7 +66,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  * @returns An Entry object
  */
 InitialRegistrar.prototype.getEntry = function(name, callback){
-    name = NamePrep.prepare(name);
+    var name = NamePrep.prepare(name);
     var hash = this.web3.sha3(name);
 
     var e = this.contract.entries(hash);
@@ -88,7 +88,7 @@ InitialRegistrar.prototype.getEntry = function(name, callback){
  * @returns The resolved address if callback is not supplied.
  */
 InitialRegistrar.prototype.startAuction = function(name){
-    name = NamePrep.prepare(name);
+    var name = NamePrep.prepare(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     
@@ -172,7 +172,7 @@ InitialRegistrar.prototype.startAuctions = function(names){
 // it could be abstracted away and handle generation, storage agnd retrieval. 
 // var bid = ethRegistrar.shaBid(web3.sha3('name'), eth.accounts[0], web3.toWei(1, 'ether'), web3.sha3('secret'));
 InitialRegistrar.prototype.shaBid = function(name, owner, value, secret, callback){
-    name = NamePrep.prepare(name);
+    var name = NamePrep.prepare(name);
     var hash = this.web3.sha3(name);
     var hexSecret = this.web3.sha3(secret);
 
@@ -207,6 +207,7 @@ InitialRegistrar.prototype.shaBid = function(name, owner, value, secret, callbac
 InitialRegistrar.NoDeposit = Error("You must specify a deposit amount greater than the value of your bid");
 
 InitialRegistrar.prototype.newBid = function(bid, params, callback){
+    // Unlike the previous methods, params are necessary here in order to make the deposit
     if (!callback){
         if(!params.value){
            throw InitialRegistrar.NoDeposit;
@@ -232,8 +233,28 @@ InitialRegistrar.prototype.newBid = function(bid, params, callback){
  *        function executes asynchronously.
  * @returns The transaction ID if callback is not supplied.
  */
-InitialRegistrar.prototype.unsealBid = function(name, owner, value, secret, callback){
+InitialRegistrar.prototype.unsealBid = function(name, owner, value, secret){
+    var name = NamePrep.prepare(name);
+    var hash = this.web3.sha3(name);
+    var hexSecret = this.web3.sha3(secret);
 
+    var callback = undefined;
+    if (typeof(arguments[arguments.length - 1]) == 'function'){
+        callback = arguments[arguments.length - 1];
+    }
+
+    var params = {};
+    if (callback && arguments.length == 6){
+        params = arguments[arguments.length - 2];
+    } else if (!callback && arguments.length == 5){
+        params = arguments[arguments.length - 1];
+    }
+    
+    if (!callback){
+        return this.contract.unsealBid(hash, owner, value, hexSecret, params);
+    } else {
+        this.contract.unsealBid(hash, owner, value, hexSecret, params, callback);
+    }
 };
 
 /**

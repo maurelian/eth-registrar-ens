@@ -186,7 +186,6 @@ describe('InitialRegistrar', function(){
             // This is just a randomly generated address from TestRPC, the owner does not need to be your address
             // but presumably you want it to be.
             var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
-            // var secret = web3.sha3('secret');
             var secret = 'secret';
             var bid= "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
             var value = web3.toWei(1, 'ether'); 
@@ -251,8 +250,25 @@ describe('InitialRegistrar', function(){
     });
 
     describe('#unsealBid()', function(){
-        it('Should replace the sealedBid Deed with an empty Deed')
-        it('Should create a new Entry if it is the current highest bid')
+        // The sealed bid created to test #newBid()
+        var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+        var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
+        var secret = 'secret';
+        var value = web3.toWei(1, 'ether'); 
+        it('Should delete the sealedBid Deed', function(done){
+
+            registrar.unsealBid('foobarbaz', testOwner, value, secret, {from: accounts[1]}, function(err, result){
+                console.log(1, err);
+                console.log(2, result);
+                registrar.contract.sealedBids.call(bid, function(err, result){
+                    console.log(3, err);
+                    console.log(4, result);
+                    assert.equal(result, "0x0000000000000000000000000000000000000000");
+                    done();
+                });
+            });
+        });
+        it('Should create a new Entry if it is the current highest bid');
     });
 }); 
 
