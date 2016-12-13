@@ -1,4 +1,4 @@
-var InitialRegistrar = require('../index.js');
+var Registrar = require('../index.js');
 var ENS = require('ethereum-ens');
 var CryptoJS = require('crypto-js');
 
@@ -29,7 +29,7 @@ function sha3(input) {
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 
-describe('InitialRegistrar', function(){
+describe('Registrar', function(){
         before(function(done){
             this.timeout(20000);
             // Deploy the ENS registry and registrar
@@ -68,7 +68,7 @@ describe('InitialRegistrar', function(){
                             contract.registrarInfo.call(function(err, value) {
                                 assert.equal(err, null, err);
                                 registrarAddress = value[0];
-                                registrar = new InitialRegistrar(web3, value[0], min_length, tld, ensRoot);
+                                registrar = new Registrar(web3, value[0], min_length, tld, ensRoot);
                                 done();
                             });
                         });
@@ -78,14 +78,14 @@ describe('InitialRegistrar', function(){
         });
     });
 
-    registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
+    registrar = new Registrar(web3, registrarAddress, min_length, tld, ensRoot);
     accounts = web3.eth.accounts;
 
     
     describe('#startAuction()', function(){
         it('Should return an error when the name is too short', function(done) {            
             registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {
-                    assert.equal(err, InitialRegistrar.TooShort);
+                    assert.equal(err, Registrar.TooShort);
                     done();
                 }
             );
@@ -104,8 +104,8 @@ describe('InitialRegistrar', function(){
             );
         });
 
-        it('Should return an error if given a name with any status other than `Open`', function(done) {
-            registrar.startAuction('foobarbaz', {from: accounts[0]}, 
+        it('Should return an error if given a nameprepped-name with any status other than `Open`', function(done) {
+            registrar.startAuction('FOOBarbaz', {from: accounts[0]}, 
                 function (err, result) {
                     assert.ok(err.toString().indexOf('invalid JUMP') != -1, err);
                     done();
@@ -129,7 +129,7 @@ describe('InitialRegistrar', function(){
                 assert.equal(result.value, 0);
                 assert.equal(result.highestBid, 0);
             });     
-
+            debugger;
             registrar.getEntry("thisnameisopen", function(err, result) {
                 assert.equal(result.name, "thisnameisopen"); 
                 assert.equal(result.status, 0); 
@@ -140,31 +140,21 @@ describe('InitialRegistrar', function(){
                 done();
             });     
         });
+        it('Nameprep should ensure the same entry is returned regardless of capitalization', function(){
+            assert.equal(registrar.getEntry("foobarbaz").hash, registrar.getEntry("FOOBarbaz").hash)
+        })
     });
 
     describe('#startAuctions()', function(){
         it('Should return an error when any name is too short', function(done) {
             var names = ["abcdefghij", "abcdefghi", "abcdefgh", "abcd"];
             registrar.startAuctions(names, {from:accounts[0] , gas: 4700000}, function(err, results){
-                assert.equal(err, InitialRegistrar.TooShort);
+                assert.equal(err, Registrar.TooShort);
                 done();
             });  
         });
 
-        it('V1: Should set multiple valid nodes to status Auction', function(done){
-            var names = ["aaa1111", "bbb2221", "ccc3331", "ddd4441"];
-            var hashes = names.map(web3.sha3);
-            // this test currently only checks one node
-            registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
-                registrar.contract.entries.call(hashes[0], function (err, result) {
-                    var status = result[0].toNumber();
-                    assert.equal(status, 1);
-                    done();
-                });
-            });
-        }); 
-
-        it('V2: Should set multiple valid nodes to status Auction', function(done){
+        it('Should set multiple valid nodes to status Auction', function(done){
             var names = ["bbb1111", "bbb2222", "bbb3333", "bbb4444"];
             registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
                 names.forEach(function(name){
@@ -176,22 +166,38 @@ describe('InitialRegistrar', function(){
     });
     
     describe('#shaBid()', function(){
-        this.timeout(10000);
+        var foobarbazBidHash = null;
         it('Should return a valid 32 byte hashed bid', function(done) {
-            debugger;
             // This is just a randomly generated address from TestRPC, the owner does not need to be your address
             // but presumably you want it to be.
             var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
             // var secret = web3.sha3('secret');
             var secret = 'secret';
-            var bid= "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
             var value = web3.toWei(1, 'ether'); 
             registrar.shaBid('foobarbaz', testOwner, value, secret, function(err,result){
                 if (err) done(err);
                 assert.equal(result, bid);
+                foobarbazBidHash = result; 
                 done(err);
             });
         });
+        it('Should return the same hash for identical Nameprep names', function(done){
+            // This is just a randomly generated address from TestRPC, the owner does not need to be your address
+            // but presumably you want it to be.
+            var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
+            var secret = 'secret';
+            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+            var value = web3.toWei(1, 'ether'); 
+            registrar.shaBid('FOOBARBAZ', testOwner, value, secret, function(err,result){
+                if (err) done(err);
+                assert.equal(result, foobarbazBidHash);
+                done(err);
+            }); 
+        });
+
+
+
         it('Should save the bid params to a local JSON file');
         /*it('Should save the bid params to a local file', function (done) {
             fs.readFile('/.bids', function(err, result) {
@@ -208,9 +214,15 @@ describe('InitialRegistrar', function(){
     });    
 
     describe('#newBid()', function(){
+        var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606";
+        var deposit = web3.toWei(2, 'ether');
+        it('Should throw an error if a deposit amount is not specified', function(done){
+            registrar.newBid(bid, {from: accounts[0]}, function(err, result){
+                assert.equal(err, Registrar.NoDeposit);
+                done();
+            });   
+        });
         it('Should create a new sealedBid Deed holding the value of deposit', function(done){
-            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606";
-            var deposit = web3.toWei(2, 'ether');
             registrar.newBid(bid, {from: accounts[0], value: deposit }, function(err, result){
                 registrar.contract.sealedBids.call(bid, function(err, result){
                     assert.ok(result != "0x0000000000000000000000000000000000000000", result);
@@ -222,20 +234,42 @@ describe('InitialRegistrar', function(){
         
     });
 
-    describe('#submitShaBid()', function(){
-        it('Should combine shaBid and newBid', function(done){
-            registrar.newShaBid
-        });
+    describe('#submitShaBid()' , function(){
+        it('Should combine shaBid and newBid'); //pending
+        function placeholder(done){
+            var bid_params = { 
+                name: "foobarbaz",
+                owner: accounts[0],
+                value: web3.toWei(1, 'ether'), 
+                deposit: web3.toWei(2, 'ether'), 
+                secret: "secret"
+            }
+            registrar.newShaBid(bid_params, function(err, result){
+            });
+        };
     });
 
     describe('#unsealBid()', function(){
-        it('Should replace the sealedBid Deed with an empty Deed')
-        it('Should create a new Entry')
+        // The sealed bid created to test #newBid()
+        var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+        var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
+        var secret = 'secret';
+        var value = web3.toWei(1, 'ether'); 
+        it('Should delete the sealedBid Deed', function(done){
+
+            registrar.unsealBid('foobarbaz', testOwner, value, secret, {from: accounts[1]}, function(err, result){
+                console.log(1, err);
+                console.log(2, result);
+                registrar.contract.sealedBids.call(bid, function(err, result){
+                    console.log(3, err);
+                    console.log(4, result);
+                    assert.equal(result, "0x0000000000000000000000000000000000000000");
+                    done();
+                });
+            });
+        });
+        it('Should create a new Entry if it is the current highest bid');
     });
-
-
-
-
 }); 
 
 
@@ -250,22 +284,6 @@ describe('InitialRegistrar', function(){
     });
 */
 
-/* 
-    #normalize
-    * should normalize the name via nameprep 
-
-*/
-
-
-/*
-    #newBid()
-    * should...
-*/
-
-/*
-    #unsealBid()
-    * should...
-*/
 
 /*
     #cancelBid()
