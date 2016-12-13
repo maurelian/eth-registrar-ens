@@ -129,7 +129,6 @@ describe('Registrar', function(){
                 assert.equal(result.value, 0);
                 assert.equal(result.highestBid, 0);
             });     
-            debugger;
             registrar.getEntry("thisnameisopen", function(err, result) {
                 assert.equal(result.name, "thisnameisopen"); 
                 assert.equal(result.status, 0); 
@@ -258,17 +257,21 @@ describe('Registrar', function(){
         it('Should delete the sealedBid Deed', function(done){
 
             registrar.unsealBid('foobarbaz', testOwner, value, secret, {from: accounts[1]}, function(err, result){
-                console.log(1, err);
-                console.log(2, result);
                 registrar.contract.sealedBids.call(bid, function(err, result){
-                    console.log(3, err);
-                    console.log(4, result);
                     assert.equal(result, "0x0000000000000000000000000000000000000000");
                     done();
                 });
             });
         });
-        it('Should create a new Entry if it is the current highest bid');
+        it('Should create a new Entry if it is the current highest bid', function(done){
+            registrar.getEntry('foobarbaz', function(err, result) {
+                debugger;
+                assert.equal(result.name, "foobarbaz"); 
+                assert.ok(result.deed != '0x0000000000000000000000000000000000000000')
+                assert.ok(result.highestBid == web3.toWei(1, 'ether'), result.highestBid);
+                done();
+            });     
+        });
     });
 }); 
 
@@ -293,7 +296,7 @@ describe('Registrar', function(){
 /*
     #finalizeAuction()
     * should...
-*/
+
 
 /*
     #transfer()

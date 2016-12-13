@@ -349,8 +349,28 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.finalizeAuction = function(name){
+    var name = NamePrep.prepare(name);
+    var hash = this.web3.sha3(name);
+    var callback = undefined;
+    
+    if(typeof arguments[arguments.length - 1] == 'function') {
+        callback = arguments[arguments.length - 1];
+    }
 
-}; 
+    var params = {};
+    // test to see if we have parameters for the web3 request:
+    if(callback && arguments.length == 3) {
+        params = arguments[arguments.length - 2];
+    } else if(!callback && arguments.length == 2) {
+        params = arguments[arguments.length - 1];
+    }
+
+    if(!callback) {
+        return this.contract.startAuction(hash, params);
+    } else {
+        this.contract.startAuction(hash, params, callback);
+    }
+};
 
 /**
  * __Not yet implemented__
@@ -415,7 +435,7 @@ Registrar.prototype.invalidateName = function(name){
  */
 Registrar.prototype.transferRegistrars = function(name){
 
-}; 
+};
 
 module.exports = Registrar;
 
