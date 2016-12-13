@@ -273,6 +273,13 @@ describe('Registrar', function(){
             });     
         });
     });
+
+    describe('finalizeAuction', function(){
+        it('Should update the deed to hold the value of the winning bid', function(done) {
+            // test body
+            done();
+        });
+    });
 }); 
 
 

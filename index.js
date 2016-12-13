@@ -336,6 +336,8 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
     }
 };
 
+
+
 /**
  * __Not yet implemented__
  * After the registration date has passed, calling finalizeAuction
