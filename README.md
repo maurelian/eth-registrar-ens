@@ -1,6 +1,6 @@
 # dot-eth-js
 
-**This package is a work in progress. Breaking changes will be made.**
+**This package is a work in progress. Breaking changes are likely to be made.**
 
 ### Todo:
 
@@ -10,7 +10,8 @@
     -   reveal period start time, registration date. 
 -   Create `submitBid()` method to combine `shaBid()` and `newBid()`
 -   Create a deed object constructor. The deed object contains all properties of a Deed contract, 
-      as well as the unhashed name (if known). 
+        as well as the unhashed name (if known). 
+-   This package currently takes value inputs denominated in `wei`. It would likey be better as `ether`.
 
 <!-- To update this documentation, run `$ documentation readme -f md -s "Overview"` from the root directory. -->
 
