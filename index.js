@@ -17,8 +17,6 @@ var namehash = ENS.prototype.namehash;
  * [Initial Registrar][wiki], which governs the `.eth` namespace.  
  * [wiki]: https://github.com/ethereum/ens/wiki
  * 
- * Todo: Make all constructor params (excluding `web3` optional, and default to those corresponding to the 
- * `eth` registrar in the public ENS registry. 
  *
  * @class
  * @param {object} web3 A web3 instance to use to communicate with the blockchain.
