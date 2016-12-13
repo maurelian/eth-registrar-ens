@@ -1,4 +1,4 @@
-var InitialRegistrar = require('../index.js');
+var Registrar = require('../index.js');
 var ENS = require('ethereum-ens');
 var CryptoJS = require('crypto-js');
 
@@ -29,7 +29,7 @@ function sha3(input) {
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 
-describe('InitialRegistrar', function(){
+describe('Registrar', function(){
         before(function(done){
             this.timeout(20000);
             // Deploy the ENS registry and registrar
@@ -68,7 +68,7 @@ describe('InitialRegistrar', function(){
                             contract.registrarInfo.call(function(err, value) {
                                 assert.equal(err, null, err);
                                 registrarAddress = value[0];
-                                registrar = new InitialRegistrar(web3, value[0], min_length, tld, ensRoot);
+                                registrar = new Registrar(web3, value[0], min_length, tld, ensRoot);
                                 done();
                             });
                         });
@@ -78,14 +78,14 @@ describe('InitialRegistrar', function(){
         });
     });
 
-    registrar = new InitialRegistrar(web3, registrarAddress, min_length, tld, ensRoot);
+    registrar = new Registrar(web3, registrarAddress, min_length, tld, ensRoot);
     accounts = web3.eth.accounts;
 
     
     describe('#startAuction()', function(){
         it('Should return an error when the name is too short', function(done) {            
             registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {
-                    assert.equal(err, InitialRegistrar.TooShort);
+                    assert.equal(err, Registrar.TooShort);
                     done();
                 }
             );
@@ -129,7 +129,7 @@ describe('InitialRegistrar', function(){
                 assert.equal(result.value, 0);
                 assert.equal(result.highestBid, 0);
             });     
-
+            debugger;
             registrar.getEntry("thisnameisopen", function(err, result) {
                 assert.equal(result.name, "thisnameisopen"); 
                 assert.equal(result.status, 0); 
@@ -149,7 +149,7 @@ describe('InitialRegistrar', function(){
         it('Should return an error when any name is too short', function(done) {
             var names = ["abcdefghij", "abcdefghi", "abcdefgh", "abcd"];
             registrar.startAuctions(names, {from:accounts[0] , gas: 4700000}, function(err, results){
-                assert.equal(err, InitialRegistrar.TooShort);
+                assert.equal(err, Registrar.TooShort);
                 done();
             });  
         });
@@ -187,7 +187,7 @@ describe('InitialRegistrar', function(){
             // but presumably you want it to be.
             var testOwner = "0x5834eb6b2acac5b0bfff8413622704d890f80e9e"
             var secret = 'secret';
-            var bid= "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
+            var bid = "0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606"
             var value = web3.toWei(1, 'ether'); 
             registrar.shaBid('FOOBARBAZ', testOwner, value, secret, function(err,result){
                 if (err) done(err);
@@ -218,7 +218,7 @@ describe('InitialRegistrar', function(){
         var deposit = web3.toWei(2, 'ether');
         it('Should throw an error if a deposit amount is not specified', function(done){
             registrar.newBid(bid, {from: accounts[0]}, function(err, result){
-                assert.equal(err, InitialRegistrar.NoDeposit);
+                assert.equal(err, Registrar.NoDeposit);
                 done();
             });   
         });
@@ -284,22 +284,6 @@ describe('InitialRegistrar', function(){
     });
 */
 
-/* 
-    #normalize
-    * should normalize the name via nameprep 
-
-*/
-
-
-/*
-    #newBid()
-    * should...
-*/
-
-/*
-    #unsealBid()
-    * should...
-*/
 
 /*
     #cancelBid()
