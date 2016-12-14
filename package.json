@@ -1,7 +1,7 @@
 {
-  "name": "dot-eth-js",
+  "name": "eth-registrar-ens",
   "version": "0.1.0",
-  "description": "\"JS bindings for the ethereum initial registrar\"",
+  "description": "\"JS bindings for the ENS initial registrar, auctioning `.eth` names\"",
   "main": "index.js",
   "directories": {
     "test": "test"
