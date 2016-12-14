@@ -12,8 +12,7 @@
 -   Create `openAuction()` which would automatically run `startAuctions()` with 9 random dummy bids alongside the one you actually wanted.
 -   Possibly connect `submitBid()` to `openAuction()`, and run if the auction is not already open before submitting.
 -   Create a deed object constructor. The deed object contains all properties of a Deed contract, as well as the unhashed name (if known). 
-- Anticipate and return errors for any inputs that would cause the contract to throw. 
-
+-   Anticipate and return errors for any inputs that would cause the contract to throw. 
 
 <!-- To update this documentation, run `$ documentation readme -f md -s "Overview"` from the root directory. -->
 
@@ -23,8 +22,9 @@
 
 ## Registrar
 
-Constructs a new Registrar instance, provides an easy-to-use interface to the 
-[Initial Registrar][wiki], which governs the `.eth` namespace.  
+Constructs a new Registrar instance, providing an easy-to-use interface to the 
+[Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(), 
+or registrar.initDefault() must be called 
 
 [wiki]: https://github.com/ethereum/ens/wiki
 
@@ -35,11 +35,16 @@ Constructs a new Registrar instance, provides an easy-to-use interface to the
 -   `min_length` **integer** The minimum length of a name require by the registrar.
 -   `tld` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The top level domain
 -   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the ENS instance in which 
-    Example usage:    var Registrar = require('dot-eth-js');
+    Example usage:    var Registrar = require('eth-registrar-ens');
         var Web3 = require('web3');
 
         var web3 = new Web3();
-        registrar = new Registrar(web3, registrarAddress, min_length, tld, ensRoot);
+        var registrar = new Registrar(web3)
+         
+        // On Ropsten with the public ENS registry
+        registrar.initDefault();
+        console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
+        console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
 
         var name = 'foobarbaz';
         registrar.startAuction(name);
