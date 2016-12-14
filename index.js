@@ -13,8 +13,11 @@ var namehash = ENS.prototype.namehash;
 
 
 /** 
- * Constructs a new Registrar instance, provides an easy-to-use interface to the 
- * [Initial Registrar][wiki], which governs the `.eth` namespace.  
+ * Constructs a new Registrar instance, providing an easy-to-use interface to the 
+ * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(), 
+ * or registrar.initDefault() must be called 
+ *
+ *
  * [wiki]: https://github.com/ethereum/ens/wiki
  * 
  *
@@ -26,12 +29,17 @@ var namehash = ENS.prototype.namehash;
  * @param {string} ens The address of the ENS instance in which 
  * Example usage:
  *
- *     var Registrar = require('dot-eth-js');
+ *     var Registrar = require('eth-registrar-ens');
  *     var Web3 = require('web3');
  *
  *     var web3 = new Web3();
- *     registrar = new Registrar(web3, registrarAddress, min_length, tld, ensRoot);
- *
+ *     var registrar = new Registrar(web3)
+ *      
+ *     // On Ropsten with the public ENS registry
+ *     registrar.initDefault();
+ *     console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
+ *     console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
+ *     
  *     var name = 'foobarbaz';
  *     registrar.startAuction(name);
  *
@@ -71,15 +79,33 @@ var namehash = ENS.prototype.namehash;
  * 
  *
  */
-function Registrar(web3, address, min_length, tld, ens){
+function Registrar(web3){
     this.web3 = web3;
-    this.contract = web3.eth.contract(interfaces.registrarInterface).at(address);
-    this.min_length = min_length;
+}
+
+Registrar.prototype.init = function(ens, tld, min_length){
+    // get registrar address from ens
+    this.min_length = 7;
     this.tld = tld;
     this.ens = ens;
+    this.address = ens.owner(tld);
+    this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
     // this isn't used yet, but I expect it will be handy
     this.rootNode = namehash(tld);
 }
+
+var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
+
+Registrar.prototype.initDefault = function(){
+    // get registrar address from ens
+    this.tld = 'eth';
+    this.ens = this.web3.eth.contract(interfaces.registryInterface).at(publicRegistryAddress);
+    this.address = this.ens.owner('eth');
+    this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
+    // this isn't used yet, but I expect it will be handy
+    this.rootNode = namehash('eth');
+}
+
 
 Registrar.TooShort = Error("Name is too short");
 

@@ -67,8 +67,8 @@ describe('Registrar', function(){
                             ens = new ENS(web3, ensRoot);
                             contract.registrarInfo.call(function(err, value) {
                                 assert.equal(err, null, err);
-                                registrarAddress = value[0];
-                                registrar = new Registrar(web3, value[0], min_length, tld, ensRoot);
+                                registrar = new Registrar(web3)
+                                registrar.init(ens, 'eth', 7);
                                 done();
                             });
                         });
@@ -77,10 +77,6 @@ describe('Registrar', function(){
             );
         });
     });
-
-    registrar = new Registrar(web3, registrarAddress, min_length, tld, ensRoot);
-    accounts = web3.eth.accounts;
-
     
     describe('#startAuction()', function(){
         it('Should return an error when the name is too short', function(done) {            
