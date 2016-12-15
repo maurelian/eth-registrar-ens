@@ -79,13 +79,14 @@ var namehash = ENS.prototype.namehash;
  * 
  *
  */
+
 function Registrar(web3){
     this.web3 = web3;
 }
 
 Registrar.prototype.init = function(ens, tld, min_length){
     // get registrar address from ens
-    this.min_length = 7;
+    this.min_length = min_length;
     this.tld = tld;
     this.ens = ens;
     this.address = ens.owner(tld);
@@ -149,9 +150,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  */
 Registrar.prototype.getEntry = function(name, callback){
     var name = NamePrep.prepare(name);
-    console.log(name);
-    var hash = '0x' + this.web3.sha3(name);
-    console.log(hash);
+    var hash = this.web3.sha3(name);
 
     var e = this.contract.entries(hash);
     var entry = new Entry(name, hash, e[0].toNumber(), e[1], e[2].toNumber(), e[3].toNumber(), e[4].toNumber());

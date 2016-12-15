@@ -6,7 +6,7 @@
 * Run tests
 */
 
-var Registrar = require('../index.js')
+var Registrar = require('./index.js')
 var ENS = require('ethereum-ens');
 var fs = require('fs');
 var solc = require('solc');
@@ -17,7 +17,7 @@ var Web3 = require("web3");
 var web3 = new Web3();
 
 var accounts = null;
-var ens = null;
+var ens = ENS(web3);
 var ensRoot = null;
 var registrar = null;
 var registrarAddress = null;
@@ -33,10 +33,11 @@ web3.eth.getAccounts( function(err, accts){
     accounts = accts;
 
     if(err) console.log(err);
-
+    ens = new ENS(web3);
+    console.log(ens);
     registrar = new Registrar(web3);
-    registrar.initDefault();
-
+    registrar.init(ens, tld, min_length);
+    debugger;
 });
 
 
