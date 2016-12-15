@@ -36,7 +36,7 @@ var namehash = ENS.prototype.namehash;
  *     var registrar = new Registrar(web3)
  *      
  *     // On Ropsten with the public ENS registry
- *     registrar.initDefault();
+ *     registrar.init();
  *     console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
  *     console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
  *     
@@ -84,29 +84,19 @@ function Registrar(web3){
     this.web3 = web3;
 }
 
-Registrar.prototype.init = function(ens, tld, min_length){
-    // get registrar address from ens
-    this.min_length = min_length;
-    this.tld = tld;
-    this.ens = ens;
-    this.address = ens.owner(tld);
-    this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
-    // this isn't used yet, but I expect it will be handy
-    this.rootNode = namehash(tld);
-}
-
 var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
 
-Registrar.prototype.initDefault = function(){
+Registrar.prototype.init = function(ens, tld, min_length){
     // get registrar address from ens
-    this.tld = 'eth';
-    this.ens = this.web3.eth.contract(interfaces.registryInterface).at(publicRegistryAddress);
-    this.address = this.ens.owner('eth');
+    this.ens = ens || new ENS(this.web3);
+    console.log(this.ens);
+    this.tld = tld || 'eth';
+    this.min_length = min_length || 7;
+    this.address = this.ens.owner(this.tld);
     this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
     // this isn't used yet, but I expect it will be handy
-    this.rootNode = namehash('eth');
+    this.rootNode = namehash(this.tld);
 }
-
 
 Registrar.TooShort = Error("Name is too short");
 
