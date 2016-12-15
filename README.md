@@ -1,4 +1,4 @@
-# dot-eth-js
+# .ETH Registrar ENS
 
 **This package is a work in progress. Breaking changes are likely to be made.**
 
