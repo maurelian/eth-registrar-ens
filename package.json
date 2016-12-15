@@ -1,6 +1,6 @@
 {
   "name": "eth-registrar-ens",
-  "version": "0.2.2",
+  "version": "0.2.5",
   "description": "\"JS bindings for the ENS initial registrar, auctioning `.eth` names\"",
   "main": "index.js",
   "directories": {
@@ -23,9 +23,10 @@
   },
   "homepage": "https://github.com/maurelian/dot-eth-js#readme",
   "dependencies": {
-    "ethereum-ens": "^0.1.1",
+    "ethereum-ens": "^0.2.4",
     "node-stringprep": "^0.8.0",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "web3": "^0.16.0"
   },
   "devDependencies": {
     "ethereumjs-testrpc": "^3.0.2",
