@@ -149,7 +149,9 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  */
 Registrar.prototype.getEntry = function(name, callback){
     var name = NamePrep.prepare(name);
+    console.log(name);
     var hash = '0x' + this.web3.sha3(name);
+    console.log(hash);
 
     var e = this.contract.entries(hash);
     var entry = new Entry(name, hash, e[0].toNumber(), e[1], e[2].toNumber(), e[3].toNumber(), e[4].toNumber());
