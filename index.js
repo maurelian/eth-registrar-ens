@@ -13,11 +13,8 @@ var namehash = ENS.prototype.namehash;
 
 
 /** 
- * Constructs a new Registrar instance, providing an easy-to-use interface to the 
- * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(), 
- * or registrar.initDefault() must be called 
- *
- *
+ * Constructs a new Registrar instance, provides an easy-to-use interface to the 
+ * [Initial Registrar][wiki], which governs the `.eth` namespace.  
  * [wiki]: https://github.com/ethereum/ens/wiki
  * 
  *
@@ -29,7 +26,7 @@ var namehash = ENS.prototype.namehash;
  * @param {string} ens The address of the ENS instance in which 
  * Example usage:
  *
- *     var Registrar = require('eth-registrar-ens');
+ *     var Registrar = require('dot-eth-js');
  *     var Web3 = require('web3');
  *
  *     var web3 = new Web3();
@@ -96,6 +93,7 @@ Registrar.prototype.init = function(ens, tld, min_length){
     this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
     // this isn't used yet, but I expect it will be handy
     this.rootNode = namehash(this.tld);
+
 }
 
 Registrar.TooShort = Error("Name is too short");
@@ -104,6 +102,17 @@ function sha3(input) {
     return CryptoJS.SHA3(input, {outputLength: 256});
 }
 
+function cleanName(input) {
+    return NamePrep.prepare(input)
+                .replace(/[áăǎâäȧạȁàảȃāąᶏẚåḁⱥã]/g,"a")
+                .replace(/[èéêëēěĕȅȩḙėẹẻęẽ]/g,"e")
+                .replace(/[íĭǐîïịȉìỉȋīįᶖɨĩḭ]/g,"i")
+                .replace(/[óŏǒôöȯọőȍòỏơȏꝋꝍⱺōǫøõ]/g,"o")
+                .replace(/[úŭǔûṷüṳụűȕùủưȗūųᶙůũṵ]/g,"u")
+                .replace(/[çćčĉċ]/g,"c")
+                .replace(/[śšşŝșṡṣʂᵴꞩᶊȿ]/g,"s")
+                .replace(/[^a-z0-9\-\_]*/g, "");
+}
 
 /**
  * Constructs a new Entry instance corresponding to a name.
@@ -139,8 +148,8 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  * @returns An Entry object
  */
 Registrar.prototype.getEntry = function(name, callback){
-    var name = NamePrep.prepare(name);
-    var hash = this.web3.sha3(name);
+    var name = cleanName(name);
+    var hash = '0x' + this.web3.sha3(name);
 
     var e = this.contract.entries(hash);
     var entry = new Entry(name, hash, e[0].toNumber(), e[1], e[2].toNumber(), e[3].toNumber(), e[4].toNumber());
