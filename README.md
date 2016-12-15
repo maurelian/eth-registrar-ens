@@ -4,17 +4,18 @@
 
 ### Todo:
 
--   Make all constructor params (excluding `web3`) optional, and default to those corresponding to the `eth` registrar in the public ENS registry. 
+-   Create `submitBid()` method to combine `shaBid()` and `newBid()`
+    -   `shaBid()` and `newBid()` don't need to be exposed once that's done.
+- Setup linting for the AirBnB js style guide  
+-   Create `openAuction()` which would automatically run `startAuctions()` with 9 random dummy bids alongside the one you actually wanted.
 -   Create a bid object constructor to simplify bid management, the bid object contains at least
     -   name, hash, bid value, owner address, secret, and date submitted. Possibly also:
     -   reveal period start time, registration date. 
--   Create `submitBid()` method to combine `shaBid()` and `newBid()`
--   Create `openAuction()` which would automatically run `startAuctions()` with 9 random dummy bids alongside the one you actually wanted.
 -   Possibly connect `submitBid()` to `openAuction()`, and run if the auction is not already open before submitting.
 -   Create a deed object constructor. The deed object contains all properties of a Deed contract, as well as the unhashed name (if known). 
 -   Anticipate and return errors for any inputs that would cause the contract to throw. 
 
-<!-- To update this documentation, run `$ documentation readme -f md -s "Overview"` from the root directory. -->
+<!-- To update docs below this point, run `$ documentation readme -f md -s "Overview"` from the root directory. -->
 
 # Overview
 
