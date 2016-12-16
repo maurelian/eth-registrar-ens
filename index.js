@@ -30,13 +30,8 @@ var namehash = ENS.prototype.namehash;
  *     var Web3 = require('web3');
  *
  *     var web3 = new Web3();
- *     var registrar = new Registrar(web3)
- *      
- *     // On Ropsten with the public ENS registry
- *     registrar.init();
- *     console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
- *     console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
- *     
+ *     registrar = new Registrar(web3, registrarAddress, min_length, tld, ensRoot);
+ *
  *     var name = 'foobarbaz';
  *     registrar.startAuction(name);
  *
@@ -76,24 +71,14 @@ var namehash = ENS.prototype.namehash;
  * 
  *
  */
-
-function Registrar(web3){
+function Registrar(web3, address, min_length, tld, ens){
     this.web3 = web3;
-}
-
-var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
-
-Registrar.prototype.init = function(ens, tld, min_length){
-    // get registrar address from ens
-    this.ens = ens || new ENS(this.web3);
-    console.log(this.ens);
-    this.tld = tld || 'eth';
-    this.min_length = min_length || 7;
-    this.address = this.ens.owner(this.tld);
-    this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
+    this.contract = web3.eth.contract(interfaces.registrarInterface).at(address);
+    this.min_length = min_length;
+    this.tld = tld;
+    this.ens = ens;
     // this isn't used yet, but I expect it will be handy
-    this.rootNode = namehash(this.tld);
-
+    this.rootNode = namehash(tld);
 }
 
 Registrar.TooShort = Error("Name is too short");
@@ -102,17 +87,6 @@ function sha3(input) {
     return CryptoJS.SHA3(input, {outputLength: 256});
 }
 
-function cleanName(input) {
-    return NamePrep.prepare(input)
-                .replace(/[áăǎâäȧạȁàảȃāąᶏẚåḁⱥã]/g,"a")
-                .replace(/[èéêëēěĕȅȩḙėẹẻęẽ]/g,"e")
-                .replace(/[íĭǐîïịȉìỉȋīįᶖɨĩḭ]/g,"i")
-                .replace(/[óŏǒôöȯọőȍòỏơȏꝋꝍⱺōǫøõ]/g,"o")
-                .replace(/[úŭǔûṷüṳụűȕùủưȗūųᶙůũṵ]/g,"u")
-                .replace(/[çćčĉċ]/g,"c")
-                .replace(/[śšşŝșṡṣʂᵴꞩᶊȿ]/g,"s")
-                .replace(/[^a-z0-9\-\_]*/g, "");
-}
 
 /**
  * Constructs a new Entry instance corresponding to a name.
@@ -133,6 +107,49 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
     this.registrationDate = registrationDate;
     this.value = value;
     this.highestBid = highestBid;
+    this.foos = 'bar';
+
+    // Check the auction mode
+
+    let mode ='';
+
+    if (name.length <= 7) {
+      // If name is short, check if it has been bought
+      if (this.status == 0) {
+        mode = 'invalid';
+      } else {
+        mode = 'can-invalidate';
+      }
+    } else {
+      // If name is of valid length
+      if (this.status == 0) {
+        // Not an auction yet
+        mode = 'open';
+      } else if (this.status == 1) {
+
+        let now = new Date();
+        let registration = new Date(this.registrationDate*1000);
+        let hours = 60*60*1000;
+
+        if ((registration - now) > 24 * hours ) {
+          // Bids are open
+          mode = 'auction';
+        } else if (now < registration && (registration - now) < 24 * hours ) {
+          // reveal time!
+          mode = 'reveal';
+        } else if (now > registration && (now - registration) < 24 * hours ) {
+          // finalize now
+          mode = 'finalize';
+        } else {
+          // finalize now but can open?
+          mode = 'finalize-open';
+        }
+      } else if (this.status == 2) {
+        mode = 'owned';
+      } 
+    } 
+
+    this.mode = mode;
 }
 
 /**
@@ -148,7 +165,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  * @returns An Entry object
  */
 Registrar.prototype.getEntry = function(name, callback){
-    var name = cleanName(name);
+    var name = NamePrep.prepare(name);
     var hash = '0x' + this.web3.sha3(name);
 
     var e = this.contract.entries(hash);
