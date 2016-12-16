@@ -30,7 +30,7 @@ var namehash = ENS.prototype.namehash;
  *     registrar.init();
  *     console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
  *     console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
- *      *
+ *     
  *     var name = 'foobarbaz';
  *     registrar.startAuction(name);
  *
@@ -74,6 +74,7 @@ var namehash = ENS.prototype.namehash;
  * @param {string} tld The top level domain
  * @param {string} ens The address of the ENS instance 
  */
+
 function Registrar(web3){
     this.web3 = web3;
 }
@@ -88,7 +89,7 @@ Registrar.prototype.init = function(ens, tld, min_length){
     this.address = this.ens.owner(this.tld);
     this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
     // this isn't used yet, but I expect it will be handy
-    this.rootNode = namehash(tld);
+    this.rootNode = namehash(this.tld);
 }
 
 Registrar.TooShort = Error("Name is too short");
