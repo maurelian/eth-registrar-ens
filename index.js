@@ -103,6 +103,28 @@ function sha3(input) {
     return CryptoJS.SHA3(input, {outputLength: 256});
 }
 
+function cleanName(input) {
+    return NamePrep.prepare(input)
+                .replace(/[áăǎâäȧạȁàảȃāąᶏẚåḁⱥã]/g,"a")
+                .replace(/[èéêëēěĕȅȩḙėẹẻęẽ]/g,"e")
+                .replace(/[íĭǐîïịȉìỉȋīįᶖɨĩḭ]/g,"i")
+                .replace(/[óŏǒôöȯọőȍòỏơȏꝋꝍⱺōǫøõ]/g,"o")
+                .replace(/[úŭǔûṷüṳụűȕùủưȗūųᶙůũṵ]/g,"u")
+                .replace(/[çćčĉċ]/g,"c")
+                .replace(/[śšşŝșṡṣʂᵴꞩᶊȿ]/g,"s")
+                .replace(/[^a-z0-9\-\_]*/g, "");
+}
+
+
+/*Registrar.prototype.getHash = function(name){
+    var hash = this.web3.sha3(name);
+    debugger;
+    if (hash.substring(0,2) == '0x') 
+        return hash;
+    else
+        return '0x' + hash; 
+}*/
+
 
 /**
  * Constructs a new Entry instance corresponding to a name.
@@ -138,7 +160,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  * @returns An Entry object
  */
 Registrar.prototype.getEntry = function(name, callback){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
 
     var e = this.contract.entries(hash);
@@ -163,7 +185,7 @@ Registrar.prototype.getEntry = function(name, callback){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuction = function(name){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     
@@ -206,7 +228,7 @@ Registrar.prototype.startAuction = function(name){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuctions = function(names){
-    var hashes = names.map(this.web3.sha3);
+    var hashes = _.map(names, this.web3.sha3);
     var invalidNames = names.filter(
         function(name){ return name.length < this.min_length;}, this
     );
@@ -255,7 +277,7 @@ Registrar.prototype.startAuctions = function(names){
 // it could be abstracted away and handle generation, storage agnd retrieval. 
 // var bid = ethRegistrar.shaBid(web3.sha3('name'), eth.accounts[0], web3.toWei(1, 'ether'), web3.sha3('secret'));
 Registrar.prototype.shaBid = function(name, owner, value, secret, callback){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var hexSecret = this.web3.sha3(secret);
 
@@ -329,7 +351,7 @@ Registrar.prototype.newBid = function(bid, params, callback){
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.unsealBid = function(name, owner, value, secret){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var hexSecret = this.web3.sha3(secret);
 
@@ -367,7 +389,7 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.finalizeAuction = function(name){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     
