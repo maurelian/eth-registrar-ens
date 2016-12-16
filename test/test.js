@@ -101,7 +101,7 @@ describe('Registrar', function(){
         });
 
         it('Should return an error if given a nameprepped-name with any status other than `Open`', function(done) {
-            registrar.startAuction('FOOBarbaz', {from: accounts[0]}, 
+            registrar.startAuction('foobarbaz', {from: accounts[0]}, 
                 function (err, result) {
                     assert.ok(err.toString().indexOf('invalid JUMP') != -1, err);
                     done();

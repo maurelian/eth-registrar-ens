@@ -16,17 +16,8 @@ var namehash = ENS.prototype.namehash;
  * Constructs a new Registrar instance, providing an easy-to-use interface to the 
  * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(), 
  * or registrar.initDefault() must be called 
- *
- *
  * [wiki]: https://github.com/ethereum/ens/wiki
  * 
- *
- * @class
- * @param {object} web3 A web3 instance to use to communicate with the blockchain.
- * @param {address} address The address of the registrar.
- * @param {integer} min_length The minimum length of a name require by the registrar.
- * @param {string} tld The top level domain
- * @param {string} ens The address of the ENS instance in which 
  * Example usage:
  *
  *     var Registrar = require('eth-registrar-ens');
@@ -76,8 +67,12 @@ var namehash = ENS.prototype.namehash;
  * @date 2016
  * @license LGPL
  *
- * 
- *
+ * @class
+ * @param {object} web3 A web3 instance to use to communicate with the blockchain.
+ * @param {address} address The address of the registrar.
+ * @param {integer} min_length The minimum length of a name require by the registrar.
+ * @param {string} tld The top level domain
+ * @param {string} ens The address of the ENS instance 
  */
 
 function Registrar(web3){
@@ -115,15 +110,18 @@ function cleanName(input) {
                 .replace(/[^a-z0-9\-\_]*/g, "");
 }
 
+Registrar.SpecialCharacters = Error (
+    "Name cannot contain special characters other than \
+     a-z, 0-9, '-' and '_'."
+);
 
-/*Registrar.prototype.getHash = function(name){
-    var hash = this.web3.sha3(name);
-    debugger;
-    if (hash.substring(0,2) == '0x') 
-        return hash;
-    else
-        return '0x' + hash; 
-}*/
+Registrar.prototype.validateName = function (name) {
+    if (name.length <= this.min_length)
+        throw Registrar.TooShort;
+    if (name != cleanName(name)){
+        throw Registrar.SpecialCharacters;
+    }
+}
 
 
 /**
@@ -202,16 +200,15 @@ Registrar.prototype.startAuction = function(name){
     }
 
     if(!callback) {
-        if (name.length < this.min_length) {
-            throw Registrar.TooShort;
-        }
-        // the async version reports an invalid opcode
+        this.validateName(name) 
         return this.contract.startAuction(hash, params);
     } else {
-        if (name.length < this.min_length) {
-            callback(Registrar.TooShort, null);
-        } else {
+        try {
+            this.validateName(name);
+            // if name is not valid, this line won't be called. 
             this.contract.startAuction(hash, params, callback);
+        } catch(e) {
+            callback(e, null);
         }
     }
 };

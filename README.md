@@ -6,7 +6,7 @@
 
 -   Create `submitBid()` method to combine `shaBid()` and `newBid()`
     -   `shaBid()` and `newBid()` don't need to be exposed once that's done.
-- Setup linting for the AirBnB js style guide  
+-   Setup linting for the AirBnB js style guide  
 -   Create `openAuction()` which would automatically run `startAuctions()` with 9 random dummy bids alongside the one you actually wanted.
 -   Create a bid object constructor to simplify bid management, the bid object contains at least
     -   name, hash, bid value, owner address, secret, and date submitted. Possibly also:
@@ -29,47 +29,54 @@ or registrar.initDefault() must be called
 
 [wiki]: https://github.com/ethereum/ens/wiki
 
+Example usage:
+
+    var Registrar = require('eth-registrar-ens');
+    var Web3 = require('web3');
+
+    var web3 = new Web3();
+    var registrar = new Registrar(web3)
+     
+    // On Ropsten with the public ENS registry
+    registrar.init();
+    console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
+    console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
+
+    var name = 'foobarbaz';
+    registrar.startAuction(name);
+
+    var owner = web3.eth.accounts[0]
+    var value = web3.toWei(1, 'ether');
+
+    // generate a sealed bid
+    var bid = registrar.shaBid(name, owner, value, 'secret');
+      
+    // submit a bid, and a deposit value. The parameters of your true bid are secret. 
+    var deposit = web3.toWei(2, 'ether');
+    registrar.newBid(bid, {value: deposit});
+
+    // reveal your bid during the reveal period
+    registrar.unsealBid(name, owner, value, 'secret');
+
+    // After the registration date has passed, assign ownership of the name
+    // in the ENS. In this case, the highest bidder would now own 'foobarbaz.eth'
+    registrar.finalizeAuction(name);
+
+Throughout this module, the same optionally-asynchronous pattern as web3 is
+used: all functions that call web3 take a callback as an optional last
+argument; if supplied, the function returns nothing, but instead calls the
+callback with (err, result) when the operation completes.
+
+Functions that create transactions also take an optional 'options' argument;
+this has the same parameters as web3.
+
 **Parameters**
 
 -   `web3` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A web3 instance to use to communicate with the blockchain.
 -   `address` **address** The address of the registrar.
 -   `min_length` **integer** The minimum length of a name require by the registrar.
 -   `tld` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The top level domain
--   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the ENS instance in which 
-    Example usage:    var Registrar = require('eth-registrar-ens');
-        var Web3 = require('web3');
-
-        var web3 = new Web3();
-        var registrar = new Registrar(web3)
-         
-        // On Ropsten with the public ENS registry
-        registrar.initDefault();
-        console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
-        console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
-
-        var name = 'foobarbaz';
-        registrar.startAuction(name);
-
-        var owner = web3.eth.accounts[0]
-        var value = web3.toWei(1, 'ether');
-
-        // generate a sealed bid
-        var bid = registrar.shaBid(name, owner, value, 'secret');
-          
-        // submit a bid, and a deposit value. The parameters of your true bid are secret. 
-        var deposit = web3.toWei(2, 'ether');
-        registrar.newBid(bid, {value: deposit});
-
-        // reveal your bid during the reveal period
-        registrar.unsealBid(name, owner, value, 'secret');
-
-        // After the registration date has passed, assign ownership of the name
-        // in the ENS. In this case, the highest bidder would now own 'foobarbaz.eth'
-        registrar.finalizeAuction(name);Throughout this module, the same optionally-asynchronous pattern as web3 is
-    used: all functions that call web3 take a callback as an optional last
-    argument; if supplied, the function returns nothing, but instead calls the
-    callback with (err, result) when the operation completes.Functions that create transactions also take an optional 'options' argument;
-    this has the same parameters as web3.
+-   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the ENS instance
 
 **Meta**
 
