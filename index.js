@@ -143,7 +143,6 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
     this.registrationDate = registrationDate;
     this.value = value;
     this.highestBid = highestBid;
-    this.foos = 'bar';
 
     // Check the auction mode
 
