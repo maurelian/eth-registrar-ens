@@ -89,7 +89,6 @@ var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
 Registrar.prototype.init = function(ens, tld, min_length){
     // get registrar address from ens
     this.ens = ens || new ENS(this.web3);
-    console.log(this.ens);
     this.tld = tld || 'eth';
     this.min_length = min_length || 7;
     this.address = this.ens.owner(this.tld);
