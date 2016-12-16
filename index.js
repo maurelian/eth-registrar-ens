@@ -13,17 +13,11 @@ var namehash = ENS.prototype.namehash;
 
 
 /** 
- * Constructs a new Registrar instance, provides an easy-to-use interface to the 
- * [Initial Registrar][wiki], which governs the `.eth` namespace.  
+ * Constructs a new Registrar instance, providing an easy-to-use interface to the 
+ * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(), 
+ * or registrar.initDefault() must be called 
  * [wiki]: https://github.com/ethereum/ens/wiki
  * 
- *
- * @class
- * @param {object} web3 A web3 instance to use to communicate with the blockchain.
- * @param {address} address The address of the registrar.
- * @param {integer} min_length The minimum length of a name require by the registrar.
- * @param {string} tld The top level domain
- * @param {string} ens The address of the ENS instance in which 
  * Example usage:
  *
  *     var Registrar = require('dot-eth-js');
@@ -68,15 +62,26 @@ var namehash = ENS.prototype.namehash;
  * @date 2016
  * @license LGPL
  *
- * 
- *
+ * @class
+ * @param {object} web3 A web3 instance to use to communicate with the blockchain.
+ * @param {address} address The address of the registrar.
+ * @param {integer} min_length The minimum length of a name require by the registrar.
+ * @param {string} tld The top level domain
+ * @param {string} ens The address of the ENS instance 
  */
 function Registrar(web3, address, min_length, tld, ens){
     this.web3 = web3;
-    this.contract = web3.eth.contract(interfaces.registrarInterface).at(address);
-    this.min_length = min_length;
-    this.tld = tld;
-    this.ens = ens;
+}
+
+var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
+
+Registrar.prototype.init = function(ens, tld, min_length){
+    // get registrar address from ens
+    this.ens = ens || new ENS(this.web3);
+    this.tld = tld || 'eth';
+    this.min_length = min_length || 7;
+    this.address = this.ens.owner(this.tld);
+    this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
     // this isn't used yet, but I expect it will be handy
     this.rootNode = namehash(tld);
 }
@@ -85,6 +90,31 @@ Registrar.TooShort = Error("Name is too short");
 
 function sha3(input) {
     return CryptoJS.SHA3(input, {outputLength: 256});
+}
+
+function cleanName(input) {
+    return NamePrep.prepare(input)
+                .replace(/[áăǎâäȧạȁàảȃāąᶏẚåḁⱥã]/g,"a")
+                .replace(/[èéêëēěĕȅȩḙėẹẻęẽ]/g,"e")
+                .replace(/[íĭǐîïịȉìỉȋīįᶖɨĩḭ]/g,"i")
+                .replace(/[óŏǒôöȯọőȍòỏơȏꝋꝍⱺōǫøõ]/g,"o")
+                .replace(/[úŭǔûṷüṳụűȕùủưȗūųᶙůũṵ]/g,"u")
+                .replace(/[çćčĉċ]/g,"c")
+                .replace(/[śšşŝșṡṣʂᵴꞩᶊȿ]/g,"s")
+                .replace(/[^a-z0-9\-\_]*/g, "");
+}
+
+Registrar.SpecialCharacters = Error (
+    "Name cannot contain special characters other than \
+     a-z, 0-9, '-' and '_'."
+);
+
+Registrar.prototype.validateName = function (name) {
+    if (name.length <= this.min_length)
+        throw Registrar.TooShort;
+    if (name != cleanName(name)){
+        throw Registrar.SpecialCharacters;
+    }
 }
 
 
@@ -165,9 +195,8 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  * @returns An Entry object
  */
 Registrar.prototype.getEntry = function(name, callback){
-    var name = NamePrep.prepare(name);
-    var hash = '0x' + this.web3.sha3(name);
-
+    var name = cleanName(name);
+    var hash = this.web3.sha3(name);
     var e = this.contract.entries(hash);
     var entry = new Entry(name, hash, e[0].toNumber(), e[1], e[2].toNumber(), e[3].toNumber(), e[4].toNumber());
 
@@ -190,7 +219,7 @@ Registrar.prototype.getEntry = function(name, callback){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuction = function(name){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     
@@ -207,16 +236,15 @@ Registrar.prototype.startAuction = function(name){
     }
 
     if(!callback) {
-        if (name.length < this.min_length) {
-            throw Registrar.TooShort;
-        }
-        // the async version reports an invalid opcode
+        this.validateName(name) 
         return this.contract.startAuction(hash, params);
     } else {
-        if (name.length < this.min_length) {
-            callback(Registrar.TooShort, null);
-        } else {
+        try {
+            this.validateName(name);
+            // if name is not valid, this line won't be called. 
             this.contract.startAuction(hash, params, callback);
+        } catch(e) {
+            callback(e, null);
         }
     }
 };
@@ -233,7 +261,7 @@ Registrar.prototype.startAuction = function(name){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuctions = function(names){
-    var hashes = names.map(this.web3.sha3);
+    var hashes = _.map(names, this.web3.sha3);
     var invalidNames = names.filter(
         function(name){ return name.length < this.min_length;}, this
     );
@@ -282,7 +310,7 @@ Registrar.prototype.startAuctions = function(names){
 // it could be abstracted away and handle generation, storage agnd retrieval. 
 // var bid = ethRegistrar.shaBid(web3.sha3('name'), eth.accounts[0], web3.toWei(1, 'ether'), web3.sha3('secret'));
 Registrar.prototype.shaBid = function(name, owner, value, secret, callback){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var hexSecret = this.web3.sha3(secret);
 
@@ -356,7 +384,7 @@ Registrar.prototype.newBid = function(bid, params, callback){
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.unsealBid = function(name, owner, value, secret){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var hexSecret = this.web3.sha3(secret);
 
@@ -394,7 +422,7 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.finalizeAuction = function(name){
-    var name = NamePrep.prepare(name);
+    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     
