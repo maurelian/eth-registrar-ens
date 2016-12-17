@@ -6,6 +6,8 @@
 
 -   Create `submitBid()` method to combine `shaBid()` and `newBid()`
     -   `shaBid()` and `newBid()` don't need to be exposed once that's done.
+-   Add fast forwarding on TestRPC
+-   Add more tests for getEntry to check bid and reveal status within the auction period
 -   Setup linting for the AirBnB js style guide  
 -   Create `openAuction()` which would automatically run `startAuctions()` with 9 random dummy bids alongside the one you actually wanted.
 -   Create a bid object constructor to simplify bid management, the bid object contains at least
