@@ -78,6 +78,15 @@ describe('Registrar', function(){
         });
     });
     
+    describe('#fixSha3()', function () {
+        it('Should return a hash prepended with `0x`', function (done) {
+            var output = registrar.web3.sha3('anything');
+            registrar.fixSha3(registrar.web3);
+            assert.equal(output.substring(0,2), '0x');
+            done();
+        })
+    })
+
     describe('#startAuction()', function(){
         it('Should return an error when the name is too short', function(done) {            
             registrar.startAuction('foo', {from: accounts[0]}, function (err, txid) {
@@ -86,6 +95,15 @@ describe('Registrar', function(){
                 }
             );
         });
+
+        it('Should return an error when the name contains special characters', function(done) {            
+            registrar.startAuction('fooøøôôóOOOo', {from: accounts[0]}, function (err, txid) {
+                    assert.equal(err, Registrar.SpecialCharacters);
+                    done();
+                }
+            );
+        });
+
 
         it('Should set an `Open` node to status `Auction`', function(done) {
             registrar.startAuction('foobarbaz', {from: accounts[0]}, 

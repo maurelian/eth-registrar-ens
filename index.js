@@ -1,6 +1,5 @@
 var interfaces = require('./interfaces.js');
 
-var CryptoJS = require('crypto-js');
 var ENS = require('ethereum-ens');
 var StringPrep = require('node-stringprep').StringPrep;
 var NamePrep = new StringPrep('nameprep');
@@ -94,9 +93,17 @@ Registrar.prototype.init = function(ens, tld, min_length){
 
 Registrar.TooShort = Error("Name is too short");
 
-function sha3(input) {
-    return CryptoJS.SHA3(input, {outputLength: 256});
-}
+Registrar.prototype.fixSha3 = function () {
+  var original = this.web3.sha3;
+  this.web3.sha3 = function() {
+    var result = original.apply(this, arguments);
+    if (result[1] !== 'x') {
+      return '0x' + result;
+    }
+    return result;
+  }
+  return this.web3;
+};
 
 function cleanName(input) {
     return NamePrep.prepare(input)
@@ -224,7 +231,6 @@ Registrar.prototype.getEntry = function(name, callback){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuction = function(name){
-    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     
