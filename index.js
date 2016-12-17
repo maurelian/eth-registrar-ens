@@ -76,6 +76,7 @@ var namehash = ENS.prototype.namehash;
 
 function Registrar(web3){
     this.web3 = web3;
+    this.fixSha3();
 }
 
 var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
@@ -93,7 +94,7 @@ Registrar.prototype.init = function(ens, tld, min_length){
 
 Registrar.TooShort = Error("Name is too short");
 
-Registrar.prototype.fixSha3 = function () {
+Registrar.prototype.fixSha3 = function() {
   var original = this.web3.sha3;
   this.web3.sha3 = function() {
     var result = original.apply(this, arguments);
@@ -102,8 +103,7 @@ Registrar.prototype.fixSha3 = function () {
     }
     return result;
   }
-  return this.web3;
-};
+}
 
 function cleanName(input) {
     return NamePrep.prepare(input)
