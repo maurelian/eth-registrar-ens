@@ -1,6 +1,5 @@
 var interfaces = require('./interfaces.js');
 
-var CryptoJS = require('crypto-js');
 var ENS = require('ethereum-ens');
 var StringPrep = require('node-stringprep').StringPrep;
 var NamePrep = new StringPrep('nameprep');
