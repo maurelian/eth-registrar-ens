@@ -103,7 +103,7 @@ Registrar.prototype.fixSha3 = function () {
     }
     return result;
   }
-  return web3;
+  return this.web3;
 };
 
 function cleanName(input) {
@@ -232,7 +232,6 @@ Registrar.prototype.getEntry = function(name, callback){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuction = function(name){
-    var name = cleanName(name);
     var hash = this.web3.sha3(name);
     var callback = undefined;
     

@@ -78,16 +78,14 @@ describe('Registrar', function(){
         });
     });
     
-/*    describe('#fixSha3()', function () {
+    describe('#fixSha3()', function () {
         it('Should return a hash prepended with `0x`', function (done) {
             var output = registrar.web3.sha3('anything');
-            console.log(Registrar.web3.sha3('asdf'));
-            fixSha3(Registrar.web3);
-            console.log(Registrar.web3.sha3('asdf'));
+            registrar.fixSha3(registrar.web3);
             assert.equal(output.substring(0,2), '0x');
             done();
         })
-    })*/
+    })
 
     describe('#startAuction()', function(){
         it('Should return an error when the name is too short', function(done) {            
