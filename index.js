@@ -143,6 +143,48 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
     this.registrationDate = registrationDate;
     this.value = value;
     this.highestBid = highestBid;
+
+    // Check the auction mode
+
+    let mode ='';
+
+    if (name.length <= 7) {
+      // If name is short, check if it has been bought
+      if (this.status == 0) {
+        mode = 'invalid';
+      } else {
+        mode = 'can-invalidate';
+      }
+    } else {
+      // If name is of valid length
+      if (this.status == 0) {
+        // Not an auction yet
+        mode = 'open';
+      } else if (this.status == 1) {
+
+        let now = new Date();
+        let registration = new Date(this.registrationDate*1000);
+        let hours = 60*60*1000;
+
+        if ((registration - now) > 24 * hours ) {
+          // Bids are open
+          mode = 'auction';
+        } else if (now < registration && (registration - now) < 24 * hours ) {
+          // reveal time!
+          mode = 'reveal';
+        } else if (now > registration && (now - registration) < 24 * hours ) {
+          // finalize now
+          mode = 'finalize';
+        } else {
+          // finalize now but can open?
+          mode = 'finalize-open';
+        }
+      } else if (this.status == 2) {
+        mode = 'owned';
+      } 
+    } 
+
+    this.mode = mode;
 }
 
 /**
@@ -160,7 +202,6 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
 Registrar.prototype.getEntry = function(name, callback){
     var name = cleanName(name);
     var hash = this.web3.sha3(name);
-
     var e = this.contract.entries(hash);
     var entry = new Entry(name, hash, e[0].toNumber(), e[1], e[2].toNumber(), e[3].toNumber(), e[4].toNumber());
 
