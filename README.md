@@ -91,13 +91,15 @@ Returns the properties of the entry for a given a name
 
 **Parameters**
 
--   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The name to get the entry for
+-   `input` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The name or hash to get the entry for
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
            function executes asynchronously.
 
 Returns **any** An Entry object
 
 ### startAuction
+
+### Start Auction
 
 Converts a name to a hash string, and opens an auction on that hash.
 
@@ -112,6 +114,8 @@ Returns **any** The txid if callback is not supplied.
 
 ### startAuctions
 
+### Start Auctions (plural)
+
 Opens auctions for multiple names at once. Since names are registered as hashes,
 this helps to prevent other bidders from guessing which names you are interested in.
 
@@ -123,6 +127,22 @@ this helps to prevent other bidders from guessing which names you are interested
            function executes asynchronously.
 
 Returns **any** The txid if callback is not supplied.
+
+### openAuction
+
+### Open Auctions
+
+Opens an auction for the desired name as well as several other randomly generated hashes, 
+this helps to prevent other bidders from guessing which names you are interested in.
+
+**Parameters**
+
+-   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The name to start an auction on
+-   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** An optional transaction object to pass to web3.
+-   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
+           function executes asynchronously.
+
+Returns **any** The txid, array of randomly generated names if callback is not supplied.
 
 ### shaBid
 

@@ -155,6 +155,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
 
     let mode ='';
 
+    // TODO: improve this so that unknown names can be handled via getEntry
     if (name.length <= 7) {
       // If name is short, check if it has been bought
       if (this.status == 0) {
@@ -200,15 +201,22 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
  * @method getEntry
  * @alias Registrar.getEntry
  * @memberOf Registrar.prototype
- * @param {string} name The name to get the entry for
+ * @param {string} input The name or hash to get the entry for
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
  * @returns An Entry object
  */
-Registrar.prototype.getEntry = function(name, callback){
-    var name = cleanName(name);
-    var hash = this.web3.sha3(name);
+Registrar.prototype.getEntry = function(input, callback){
+    // accept either a name or a hash
+    var hash = input;
+    var name = 'unknown';
+    // if the input is a name
+    if (input.substring(0,2) != '0x'){
+        var name = cleanName(input);
+        var hash = this.web3.sha3(name);    
+    }
+
     var e = this.contract.entries(hash);
     var entry = new Entry(name, hash, e[0].toNumber(), e[1], e[2].toNumber(), e[3].toNumber(), e[4].toNumber());
 
@@ -221,6 +229,8 @@ Registrar.prototype.getEntry = function(name, callback){
 
 
 /**
+ * ## Start Auction
+ *
  * Converts a name to a hash string, and opens an auction on that hash.
  *
  * @param {string} name The name to start an auction on
@@ -261,6 +271,9 @@ Registrar.prototype.startAuction = function(name){
 };
 
 /**
+ * ## Start Auctions (plural)
+ *
+ *
  * Opens auctions for multiple names at once. Since names are registered as hashes,
  * this helps to prevent other bidders from guessing which names you are interested in.
  * 
@@ -301,6 +314,61 @@ Registrar.prototype.startAuctions = function(names){
             this.contract.startAuctions(hashes, params, callback);
     }
 };
+
+
+
+/**
+ * ## Open Auctions 
+ *
+ * Opens an auction for the desired name as well as several other randomly generated hashes, 
+ * this helps to prevent other bidders from guessing which names you are interested in.
+ * 
+ * @param {string} name The name to start an auction on
+ * @param {object} params An optional transaction object to pass to web3.
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ *
+ * @returns The txid, array of randomly generated names if callback is not supplied.
+ */
+Registrar.prototype.openAuction = function(name){
+    var hash = this.web3.sha3(name);
+    // Generate an array of random hashes
+    var randomHashes = new Array(10);
+    for(var i=0; i<randomHashes.length; i++){
+        randomHashes[i] = this.web3.sha3(Math.random().toString());
+    }
+    // Randomly select an array entry to replace with the name we want
+    var j = Math.floor(Math.random()*10);
+    randomHashes[j] = hash;
+    console.log(randomHashes);
+
+    var callback = undefined;
+    
+    if(typeof arguments[arguments.length - 1] == 'function') {
+        callback = arguments[arguments.length - 1];
+    }
+
+    var params = {};
+    // test to see if we have parameters for the web3 request:
+    if(callback && arguments.length == 3) {
+        params = arguments[arguments.length - 2];
+    } else if(!callback && arguments.length == 2) {
+        params = arguments[arguments.length - 1];
+    }
+
+    if (!callback){ 
+        this.validateName(name);
+        return this.contract.startAuctions(randomHashes, params);
+    } else {
+        try {
+            this.validateName(name);
+            // if name is not valid, this line won't be called. 
+            this.contract.startAuctions(randomHashes, params, callback);
+        } catch(e) {
+            callback(e, null);
+        }
+    }
+}
 
 
 /**

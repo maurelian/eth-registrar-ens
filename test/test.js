@@ -177,6 +177,28 @@ describe('Registrar', function(){
             });
         });
     });
+
+    describe('#openAuction()', function(){
+        it('Should return an error when the name is too short', function(done) {
+            var name = "abc";
+            registrar.openAuction(name, {from:accounts[0], gas: 4700000}, function(err, result){
+                assert.equal(err, Registrar.TooShort);
+                done();
+            });  
+        });
+
+        it('Should set desired name and all submitted nodes to status Auction', function(done){
+            var name = "bazbarfoo";
+//
+            registrar.openAuction(name, {from:accounts[0], gas: 4700000}, function(err, result) {
+                    debugger;
+                    registrar.getEntry('0xadcebd20210a628ac626e4bb822f38ad6a3f833115d5e18513c47924876c61ad');
+                    assert.equal(registrar.getEntry(name).status, 1);
+                done()
+            });
+        });
+    });
+
     
     describe('#shaBid()', function(){
         var foobarbazBidHash = null;
