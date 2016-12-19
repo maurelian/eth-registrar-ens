@@ -11,12 +11,12 @@ var _ = require('underscore');
 var namehash = ENS.prototype.namehash;
 
 
-/** 
- * Constructs a new Registrar instance, providing an easy-to-use interface to the 
- * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(), 
- * or registrar.initDefault() must be called 
+/**
+ * Constructs a new Registrar instance, providing an easy-to-use interface to the
+ * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(),
+ * or registrar.initDefault() must be called
  * [wiki]: https://github.com/ethereum/ens/wiki
- * 
+ *
  * Example usage:
  *
  *     var Registrar = require('eth-registrar-ens');
@@ -24,25 +24,25 @@ var namehash = ENS.prototype.namehash;
  *
  *     var web3 = new Web3();
  *     var registrar = new Registrar(web3)
- *      
+ *
  *     // On Ropsten with the public ENS registry
  *     registrar.init();
  *     console.log(registrar.ens.registry.address);   // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
  *     console.log(registrar.rootNode);      // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
- *     
+ *
  *     var name = 'foobarbaz';
  *     registrar.startAuction(name);
  *
  *     var owner = web3.eth.accounts[0]
  *     var value = web3.toWei(1, 'ether');
- *     
+ *
  *     // generate a sealed bid
  *     var bid = registrar.shaBid(name, owner, value, 'secret');
- *       
- *     // submit a bid, and a deposit value. The parameters of your true bid are secret. 
+ *
+ *     // submit a bid, and a deposit value. The parameters of your true bid are secret.
  *     var deposit = web3.toWei(2, 'ether');
  *     registrar.newBid(bid, {value: deposit});
- *     
+ *
  *     // reveal your bid during the reveal period
  *     registrar.unsealBid(name, owner, value, 'secret');
  *
@@ -62,7 +62,7 @@ var namehash = ENS.prototype.namehash;
  * Functions that create transactions also take an optional 'options' argument;
  * this has the same parameters as web3.
  *
- * @author J Maurelian 
+ * @author J Maurelian
  * @date 2016
  * @license LGPL
  *
@@ -71,11 +71,20 @@ var namehash = ENS.prototype.namehash;
  * @param {address} address The address of the registrar.
  * @param {integer} min_length The minimum length of a name require by the registrar.
  * @param {string} tld The top level domain
- * @param {string} ens The address of the ENS instance 
+ * @param {string} ens The address of the ENS instance
  */
 
 function Registrar(web3){
     this.web3 = web3;
+
+    //Fix web3 < 0.16 breaking change (leading 0x)
+    this.sha3 = function() {
+      var result = web3.sha3.apply(this, arguments);
+      if (result[1] !== 'x') {
+        return '0x' + result;
+      }
+      return result;
+    }
 }
 
 var publicRegistryAddress = "0x112234455c3a32fd11230c42e7bccd4a84e02010";
@@ -92,18 +101,6 @@ Registrar.prototype.init = function(ens, tld, min_length){
 }
 
 Registrar.TooShort = Error("Name is too short");
-
-Registrar.prototype.fixSha3 = function () {
-  var original = this.web3.sha3;
-  this.web3.sha3 = function() {
-    var result = original.apply(this, arguments);
-    if (result[1] !== 'x') {
-      return '0x' + result;
-    }
-    return result;
-  }
-  return this.web3;
-};
 
 function cleanName(input) {
     return NamePrep.prepare(input)
@@ -134,7 +131,7 @@ Registrar.prototype.validateName = function (name) {
 /**
  * Constructs a new Entry instance corresponding to a name.
  *
- * @param {string} name The unhashed name 
+ * @param {string} name The unhashed name
  * @param {string} hash
  * @param {number} status
  * @param {address} deed
@@ -189,15 +186,15 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
         }
       } else if (this.status == 2) {
         mode = 'owned';
-      } 
-    } 
+      }
+    }
 
     this.mode = mode;
 }
 
 /**
  * Returns the properties of the entry for a given a name
- * 
+ *
  * @method getEntry
  * @alias Registrar.getEntry
  * @memberOf Registrar.prototype
@@ -241,9 +238,9 @@ Registrar.prototype.getEntry = function(input, callback){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuction = function(name){
-    var hash = this.web3.sha3(name);
+    var hash = this.sha3(name);
     var callback = undefined;
-    
+
     if(typeof arguments[arguments.length - 1] == 'function') {
         callback = arguments[arguments.length - 1];
     }
@@ -257,12 +254,12 @@ Registrar.prototype.startAuction = function(name){
     }
 
     if(!callback) {
-        this.validateName(name) 
+        this.validateName(name)
         return this.contract.startAuction(hash, params);
     } else {
         try {
             this.validateName(name);
-            // if name is not valid, this line won't be called. 
+            // if name is not valid, this line won't be called.
             this.contract.startAuction(hash, params, callback);
         } catch(e) {
             callback(e, null);
@@ -276,7 +273,7 @@ Registrar.prototype.startAuction = function(name){
  *
  * Opens auctions for multiple names at once. Since names are registered as hashes,
  * this helps to prevent other bidders from guessing which names you are interested in.
- * 
+ *
  * @param {array} names An array of names to start auctions on
  * @param {object} params An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
@@ -285,11 +282,11 @@ Registrar.prototype.startAuction = function(name){
  * @returns The txid if callback is not supplied.
  */
 Registrar.prototype.startAuctions = function(names){
-    var hashes = _.map(names, this.web3.sha3);
+    var hashes = _.map(names, this.sha3);
     var invalidNames = names.filter(
         function(name){ return name.length < this.min_length;}, this
     );
-    
+
     var callback = undefined;
 
     if (typeof(arguments[arguments.length - 1]) == 'function'){
@@ -374,10 +371,10 @@ Registrar.prototype.openAuction = function(name){
 /**
  * Generates the "bid string" (hash) which representing a sealed bid. This does not 
  * submit the bid to the registrar, it only calls on the registrar's corresponding
- * method. 
+ * method.
  *
- * ToDo: Make `owner` default to sender if not specified. 
- * 
+ * ToDo: Make `owner` default to sender if not specified.
+ *
  * @param {string} name The name to be bid on
  * @param {string} address An optional owner address
  * @param {number} value The value of your bid in wei
@@ -386,12 +383,12 @@ Registrar.prototype.openAuction = function(name){
  * @returns the sealed bid hash string
  */
 // How should we better handle secret generation and storage?
-// it could be abstracted away and handle generation, storage agnd retrieval. 
+// it could be abstracted away and handle generation, storage agnd retrieval.
 // var bid = ethRegistrar.shaBid(web3.sha3('name'), eth.accounts[0], web3.toWei(1, 'ether'), web3.sha3('secret'));
 Registrar.prototype.shaBid = function(name, owner, value, secret, callback){
     var name = cleanName(name);
-    var hash = this.web3.sha3(name);
-    var hexSecret = this.web3.sha3(secret);
+    var hash = this.sha3(name);
+    var hexSecret = this.sha3(secret);
 
     if (!callback){
         return this.contract.shaBid(hash, owner, value, hexSecret);
@@ -404,9 +401,9 @@ Registrar.NoDeposit = Error("You must specify a deposit amount greater than the 
 
 /**
  * Submits a bid string to the registrar, creating a new sealed bid entry.
- * The value 
- * 
- * @param {string} bid 
+ * The value
+ *
+ * @param {string} bid
  * @param {object} params A dict of parameters to pass to web3. An amount must be included.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
@@ -414,15 +411,15 @@ Registrar.NoDeposit = Error("You must specify a deposit amount greater than the 
  * @returns The transaction ID if callback is not supplied.
  */
 /* At present this provides very little utility, aside from putting the method where you would expect it to be.
- * More value would be in: 
+ * More value would be in:
     * creating the bid hash string
-    * accepting the value as a "deposit" variable 
+    * accepting the value as a "deposit" variable
     * accepting a bid object:
-    { 
+    {
         name: "name",
         owner: "0xaddress",
-        value: 1, 
-        deposit: 2, 
+        value: 1,
+        deposit: 2,
         secret: "secret"
     }
 */
@@ -448,14 +445,14 @@ Registrar.prototype.newBid = function(bid, params, callback){
  * the bid string, and associate them with the previously submitted bid string and
  * deposit. If you have not already submitted a bid string, the registrar will throw.
  * If your bid is revealed as the current highest; the difference between your deposit
- * and bid value will be returned to you, and the previous highest bidder will have 
- * their funds returned. If you are not the highest bidder, all your funds will be 
- * returned. Returns are sent to the owner address on the bid. 
- * 
- * @param {string} name 
+ * and bid value will be returned to you, and the previous highest bidder will have
+ * their funds returned. If you are not the highest bidder, all your funds will be
+ * returned. Returns are sent to the owner address on the bid.
+ *
+ * @param {string} name
  * @param {address} owner An optional owner address; defaults to sender
  * @param {number} value The value of your bid
- * @param {secret} secret The secret used to create the bid string 
+ * @param {secret} secret The secret used to create the bid string
  * @param {object} options An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
@@ -464,8 +461,8 @@ Registrar.prototype.newBid = function(bid, params, callback){
  */
 Registrar.prototype.unsealBid = function(name, owner, value, secret){
     var name = cleanName(name);
-    var hash = this.web3.sha3(name);
-    var hexSecret = this.web3.sha3(secret);
+    var hash = this.sha3(name);
+    var hexSecret = this.sha3(secret);
 
     var callback = undefined;
     if (typeof(arguments[arguments.length - 1]) == 'function'){
@@ -478,7 +475,7 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
     } else if (!callback && arguments.length == 5){
         params = arguments[arguments.length - 1];
     }
-    
+
     if (!callback){
         return this.contract.unsealBid(hash, owner, value, hexSecret, params);
     } else {
@@ -491,9 +488,9 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
 /**
  * __Not yet implemented__
  * After the registration date has passed, calling finalizeAuction
- * will set the winner as the owner of the corresponding ENS subnode. 
- * 
- * @param {string} name 
+ * will set the winner as the owner of the corresponding ENS subnode.
+ *
+ * @param {string} name
  * @param {object} options An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
@@ -502,9 +499,9 @@ Registrar.prototype.unsealBid = function(name, owner, value, secret){
  */
 Registrar.prototype.finalizeAuction = function(name){
     var name = cleanName(name);
-    var hash = this.web3.sha3(name);
+    var hash = this.sha3(name);
     var callback = undefined;
-    
+
     if(typeof arguments[arguments.length - 1] == 'function') {
         callback = arguments[arguments.length - 1];
     }
@@ -528,7 +525,7 @@ Registrar.prototype.finalizeAuction = function(name){
  * __Not yet implemented__
  * The owner of a domain may transfer it, and the associated deed,
  * to someone else at any time.
- * 
+ *
  * @param {string} name The node to transfer
  * @param {string} newOwner The address to transfer ownership to
  * @param {object} options An optional transaction object to pass to web3.
@@ -538,8 +535,8 @@ Registrar.prototype.finalizeAuction = function(name){
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.transfer = function(name, newOwner){
-    
-} 
+
+}
 
 /**
  * __Not yet implemented__
@@ -550,44 +547,43 @@ Registrar.prototype.transfer = function(name, newOwner){
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
- * @returns The transaction ID if callback is not supplied. 
+ * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.releaseDeed = function(name){
-    
+
 }
 
 /**
  * __Not yet implemented__
- * Submit a name 6 characters long or less. If it has been registered, 
- * the submitter will earn a portion of the deed value, and the name will be updated 
+ * Submit a name 6 characters long or less. If it has been registered,
+ * the submitter will earn a portion of the deed value, and the name will be updated
  *
  * @param {string} name An invalid name to search for in the registry.
  * @param {object} options An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
- * @returns The transaction ID if callback is not supplied. 
+ * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.invalidateName = function(name){
 
 };
 
-    
+
 /**
  * __Not yet implemented__
  * Transfers the deed to the current registrar, if different from this one.
  * Used during the upgrade process to a permanent registrar.
  *
- * @param name The name to transfer. 
+ * @param name The name to transfer.
  * @param {object} options An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
- * @returns The transaction ID if callback is not supplied. 
+ * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.transferRegistrars = function(name){
 
 };
 
 module.exports = Registrar;
-
