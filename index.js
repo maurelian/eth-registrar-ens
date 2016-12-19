@@ -211,7 +211,7 @@ Registrar.prototype.getEntry = function(input, callback){
     // if the input is a name
     if (input.substring(0,2) != '0x'){
         var name = cleanName(input);
-        var hash = this.web3.sha3(name);    
+        var hash = this.sha3(name);    
     }
 
     var e = this.contract.entries(hash);
@@ -328,11 +328,11 @@ Registrar.prototype.startAuctions = function(names){
  * @returns The txid, array of randomly generated names if callback is not supplied.
  */
 Registrar.prototype.openAuction = function(name){
-    var hash = this.web3.sha3(name);
+    var hash = this.sha3(name);
     // Generate an array of random hashes
     var randomHashes = new Array(10);
     for(var i=0; i<randomHashes.length; i++){
-        randomHashes[i] = this.web3.sha3(Math.random().toString());
+        randomHashes[i] = this.sha3(Math.random().toString());
     }
     // Randomly select an array entry to replace with the name we want
     var j = Math.floor(Math.random()*10);
