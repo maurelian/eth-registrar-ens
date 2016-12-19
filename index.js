@@ -207,7 +207,8 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
 Registrar.prototype.getEntry = function(input, callback){
     // accept either a name or a hash
     var hash = input;
-    var name = 'unknown';
+    // if the input is a hash, we'll use that for the name in the entry object
+    var name = input;
     // if the input is a name
     if (input.substring(0,2) != '0x'){
         var name = cleanName(input);
