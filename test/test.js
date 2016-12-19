@@ -169,7 +169,7 @@ describe('Registrar', function(){
 
         it('Should set multiple valid nodes to status Auction', function(done){
             var names = ["bbb1111", "bbb2222", "bbb3333", "bbb4444"];
-            registrar.startAuctions(names, {from:accounts[0]}, function(err, result) {
+            registrar.startAuctions(names, {from:accounts[0], gas: 4700000}, function(err, result) {
                 names.forEach(function(name){
                     assert.equal(registrar.getEntry(name).status, 1);
                 })
@@ -236,7 +236,7 @@ describe('Registrar', function(){
             });   
         });
         it('Should create a new sealedBid Deed holding the value of deposit', function(done){
-            registrar.newBid(bid, {from: accounts[0], value: deposit }, function(err, result){
+            registrar.newBid(bid, {from: accounts[0], gas: 4700000,  value: deposit }, function(err, result){
                 registrar.contract.sealedBids.call(bid, function(err, result){
                     assert.ok(result != "0x0000000000000000000000000000000000000000", result);
                     assert.equal(web3.eth.getBalance(result), deposit);
@@ -270,7 +270,7 @@ describe('Registrar', function(){
         var value = web3.toWei(1, 'ether'); 
         it('Should delete the sealedBid Deed', function(done){
 
-            registrar.unsealBid('foobarbaz', testOwner, value, secret, {from: accounts[1]}, function(err, result){
+            registrar.unsealBid('foobarbaz', testOwner, value, secret, {from: accounts[1], gas: 4700000}, function(err, result){
                 registrar.contract.sealedBids.call(bid, function(err, result){
                     assert.equal(result, "0x0000000000000000000000000000000000000000");
                     done();
