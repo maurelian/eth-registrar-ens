@@ -34,6 +34,9 @@ describe('Registrar', function(){
             this.timeout(20000);
             // Deploy the ENS registry and registrar
             web3.eth.getAccounts(function(err, accts){
+                if (err) {
+                  throw err;
+                }
                 accounts = accts;
                 /*
                 // Use this block for a fresh compile and save, or for testing a fresh install
