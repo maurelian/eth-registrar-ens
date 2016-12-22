@@ -338,7 +338,6 @@ Registrar.prototype.openAuction = function(name){
     // Randomly select an array entry to replace with the name we want
     var j = Math.floor(Math.random()*10);
     randomHashes[j] = hash;
-    console.log(randomHashes);
 
     var callback = undefined;
     

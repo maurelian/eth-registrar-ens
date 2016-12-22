@@ -122,6 +122,52 @@ describe('Registrar', function(){
         });
     });
 
+    describe('#openAuction()', function(){
+        it('Should return an error when the name is too short', function(done) {
+            registrar.openAuction('foo', {from: accounts[0]}, function (err, txid) {
+                    assert.equal(err, Registrar.TooShort);
+                    done();
+                }
+            );
+        });
+
+        it('Should return an error when the name contains special characters', function(done) {
+            registrar.openAuction('fooøøôôóOOOo', {from: accounts[0]}, function (err, txid) {
+                    assert.equal(err, Registrar.SpecialCharacters);
+                    done();
+                }
+            );
+        });
+
+
+        it('Should set an `Open` node to status `Auction`', function(done) {
+            registrar.openAuction('bazbarfoo', {from: accounts[0], gas: 4700000},
+                function (err, txid) {
+                    hash = web3.sha3('bazbarfoo');
+                    /*
+                    currently we are only testing to ensure that the desired name
+                    has been opened. I've manually verified that others are also opened
+                    for now.
+                    */
+                    registrar.contract.entries.call(hash, function (err, result) {
+                        var status = result[0].toString();
+                        assert.equal(status, 1);
+                        done();
+                    });
+                }
+            );
+        });
+
+        it('Should return an error if given a nameprepped-name with any status other than `Open`', function(done) {
+            registrar.openAuction('foobarbaz', {from: accounts[0], gas: 4700000},
+                function (err, result) {
+                    assert.ok(err.toString().indexOf('invalid JUMP') != -1, err);
+                    done();
+                }
+            );
+        });
+    });
+
     describe('#getEntry()', function(){
         it('Should return the correct properties of a name', function(done){
             // a name being auctioned
