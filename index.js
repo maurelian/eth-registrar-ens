@@ -150,7 +150,10 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
 
     // Check the auction mode
 
-    let mode ='';
+    var mode ='',
+      now,
+      registration,
+      hours;
 
     // TODO: improve this so that unknown names can be handled via getEntry
     if (name.length <= 7) {
@@ -167,9 +170,9 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
         mode = 'open';
       } else if (this.status == 1) {
 
-        let now = new Date();
-        let registration = new Date(this.registrationDate*1000);
-        let hours = 60*60*1000;
+        now = new Date();
+        registration = new Date(this.registrationDate*1000);
+        hours = 60*60*1000;
 
         if ((registration - now) > 24 * hours ) {
           // Bids are open
