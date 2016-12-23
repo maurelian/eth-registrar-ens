@@ -155,7 +155,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
 
     let mode ='';
 
-    if (name.length <= 7) {
+    if (name.length < 7) {
       // If name is short, check if it has been bought
       if (this.status == 0) {
         mode = 'invalid';
