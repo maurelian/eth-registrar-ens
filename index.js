@@ -155,8 +155,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid){
       registration,
       hours;
 
-    // TODO: improve this so that unknown names can be handled via getEntry
-    if (name.length <= 7) {
+    if (name.length < 7) {
       // If name is short, check if it has been bought
       if (this.status == 0) {
         mode = 'invalid';
