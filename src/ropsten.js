@@ -1,6 +1,6 @@
-/* 
+/*
   Handy for connecting to ropsten to interact with the ENS or ETH-Registrar from the command line
-  Usage example: 
+  Usage example:
 
   ```
     $ node debug ropsten
@@ -8,13 +8,13 @@
     connecting to 127.0.0.1:5858 ... ok
     break in ropsten.js:11
       9
-     10 
+     10
     >11 var Registrar = require('./index.js')
      12 var ENS = require('ethereum-ens');
      13 var fs = require('fs');
 
     // the program will stop here, enter `c` to 'continue' or 'help'
-    c 
+    > c
 
     < ens.registry.address:  0x112234455c3a32fd11230c42e7bccd4a84e02010
     < registrar.address:  0x0000000000000000000000000000000000000000
@@ -26,8 +26,8 @@
      46
 
     // The program stops again, enter `repl` to access the program's environment
-    repl 
-    
+    > repl
+
     Press Ctrl + C to leave debug repl
     > registrar.getEntry('insurance');
     { name: 'insurance',
@@ -36,7 +36,7 @@
       deed: '0x',
       registrationDate: 0,
       value: 0,
-      highestBid: 0 } 
+      highestBid: 0 }
     > registrar.getEntry('foundation');
     { name: 'foundation',
       hash: '0x0d5c1bd818a4086f28314415cb375a937593efab66f8f7d2903bf2a13ed35070',
@@ -45,34 +45,23 @@
       registrationDate: 1481556445,
       value: 10000000000000000,
       highestBid: 2100000000000000000 }
-  ```  
+  ```
 */
 
-var Registrar = require('./index.js')
-var ENS = require('ethereum-ens');
-var fs = require('fs');
-var solc = require('solc');
-var TestRPC = require("ethereumjs-testrpc");
-var Web3 = require("web3");
+const Registrar = require('./index.js');
+const Web3 = require('web3');
 
-
-var web3 = new Web3();
-
-var accounts = null;
-var registrar = null;
-var ens = null;
-
-
+const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
-web3.eth.getAccounts( function(err, accts){
-    accounts = accts;
+// TODO: make this into a proper repl
+web3.eth.getAccounts((err, accts) => { // eslint-disable-line
 
-    if(err) console.log(err);
-    // ens = new ENS(web3);
-    registrar = new Registrar(web3);
-    registrar.init();
-    ens = registrar.ens;
-    debugger;
+  if (err) console.log(err); // eslint-disable-line
+  // ens = new ENS(web3);
+  const registrar = new Registrar(web3);
+  registrar.init();
+  const ens = registrar.ens; // eslint-disable-line
+  debugger; // eslint-disable-line
 });
 

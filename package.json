@@ -2,19 +2,24 @@
   "name": "eth-registrar-ens",
   "version": "0.4.1",
   "description": "\"JS bindings for the ENS initial registrar, auctioning `.eth` names\"",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
+  "main": "lib/index.js",
+  "files" :["src","lib"],
   "scripts": {
-    "test": "mocha"
+    "pretest": "npm run lint",
+    "prepublish": "npm run build",
+    "test": "mocha src/test/test",
+    "build": "babel src -d lib",
+    "lint": "eslint src --ignore-path .gitignore"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/maurelian/dot-eth-js.git"
   },
   "keywords": [
-    "ethereum"
+    "ethereum", 
+    "ens", 
+    "registrar",
+    "eth"
   ],
   "author": "Maurelian",
   "license": "GPL-3.0",
@@ -29,6 +34,12 @@
     "web3": "^0.16.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-preset-env": "^1.1.4",
+    "eslint": "^3.12.2",
+    "eslint-config-airbnb-base": "^11.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "ethereumjs-abi": "^0.6.4",
     "ethereumjs-testrpc": "^3.0.2",
     "mocha": "^3.2.0",
     "solc": "^0.4.4"
