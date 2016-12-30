@@ -1,4 +1,4 @@
-const Registrar = require('../../lib/index.js');
+const Registrar = require('../../src/index.js');
 const ENS = require('ethereum-ens');
 
 const assert = require('assert');
@@ -165,7 +165,7 @@ describe('Registrar', () => {
       registrar.getEntry('foobarbaz', (err, result) => {
         assert.equal(result.name, 'foobarbaz');
         assert.equal(result.status, 1);
-        assert.equal(result.deed, '0x0000000000000000000000000000000000000000');
+        assert.equal(result.deed.address, '0x0000000000000000000000000000000000000000');
         assert.ok(result.registrationDate - new Date(), result.registrationDate);
         assert.equal(result.value, 0);
         assert.equal(result.highestBid, 0);
@@ -173,7 +173,7 @@ describe('Registrar', () => {
       registrar.getEntry('thisnameisopen', (err, result) => {
         assert.equal(result.name, 'thisnameisopen');
         assert.equal(result.status, 0);
-        assert.equal(result.deed, '0x0000000000000000000000000000000000000000');
+        assert.equal(result.deed.address, '0x0000000000000000000000000000000000000000');
         assert.equal(result.registrationDate, 0);
         assert.equal(result.value, 0);
         assert.equal(result.highestBid, 0);
@@ -315,7 +315,7 @@ describe('Registrar', () => {
     it('Should create a new Entry if it is the current highest bid', (done) => {
       registrar.getEntry('foobarbaz', (err, result) => {
         assert.equal(result.name, 'foobarbaz');
-        assert.ok(result.deed !== '0x0000000000000000000000000000000000000000');
+        assert.ok(result.deed.address !== '0x0000000000000000000000000000000000000000');
         assert.equal(Number(result.highestBid), web3.toWei(1, 'ether'));
         done();
       });

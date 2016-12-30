@@ -161,6 +161,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
   if (name.length <= 7) {
     // If name is short, check if it has been bought
     if (this.status === 0) {
+      // TODO: Calling this 'invalid' is confusing, it's not the same as 'invalidated'
       mode = 'invalid';
     } else {
       mode = 'can-invalidate';
@@ -196,6 +197,25 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
   this.mode = mode;
 }
 
+
+/**
+ * Constructs a Deed object
+ */
+function Deed(address, balance, creationDate, owner) {
+  this.address = address;
+  this.balance = balance;
+  this.creationDate = creationDate;
+  this.owner = owner;
+}
+
+
+Registrar.prototype.getDeed = function getDeed(address) {
+  const d = this.web3.eth.contract(interfaces.deedInterface).at(address);
+  const balance = this.web3.eth.getBalance(address);
+  return new Deed(d.address, balance, d.creationDate(), d.owner());
+};
+
+
 /**
  * Returns the properties of the entry for a given a name
  *
@@ -209,7 +229,7 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
  * @returns An Entry object
  */
 Registrar.prototype.getEntry = function getEntry(input, callback) {
-  // accept either a name or a hash
+  // Accept either a name or a hash
   let hash = input;
   // if the input is a hash, we'll use that for the name in the entry object
   let name = input;
@@ -220,13 +240,25 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
   }
 
   const e = this.contract.entries(hash);
-  const entry = new Entry(name,
+  let deed;
+
+  if (e[1] !== '0x0000000000000000000000000000000000000000') {
+    //
+    deed = this.getDeed(e[1]);
+  } else {
+    // construct a deed object with all props null except for the 0 address
+    deed = new Deed(e[1], null, null, null);
+  }
+
+  const entry = new Entry(
+    name,
     hash,
     e[0].toNumber(),
-    e[1],
+    deed,
     e[2].toNumber(),
     e[3].toNumber(),
-    e[4].toNumber());
+    e[4].toNumber()
+  );
 
   if (callback) {
     callback(null, entry);
@@ -234,7 +266,6 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
     return entry;
   }
 };
-
 
 /**
  * ## Start Auction
