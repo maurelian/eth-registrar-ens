@@ -4,8 +4,6 @@ const ENS = require('ethereum-ens');
 const StringPrep = require('node-stringprep').StringPrep;
 
 const NamePrep = new StringPrep('nameprep');
-const _ = require('underscore');
-
 const namehash = ENS.prototype.namehash;
 
 
@@ -268,72 +266,6 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
 };
 
 /**
- * ## Start Auction
- *
- * Converts a name to a hash string, and opens an auction on that hash.
- *
- * @param {string} name The name to start an auction on
- * @param {object} params An optional transaction object to pass to web3.
- * @param {function} callback An optional callback; if specified, the
- *        function executes asynchronously.
- *
- * @returns The txid if callback is not supplied.
- */
-Registrar.prototype.startAuction = function startAuction(name, params = {}, callback = null) {
-  const hash = this.sha3(name);
-
-  if (callback) {
-    try {
-      this.validateName(name);
-      // if name is not valid, this line won't be called.
-      this.contract.startAuction(hash, params, callback);
-    } catch (e) {
-      callback(e, null);
-    }
-  } else {
-    this.validateName(name);
-    return this.contract.startAuction(hash, params);
-  }
-};
-
-/**
- * ## Start Auctions (plural)
- *
- *
- * Opens auctions for multiple names at once. Since names are registered as hashes,
- * this helps to prevent other bidders from guessing which names you are interested in.
- *
- * @param {array} names An array of names to start auctions on
- * @param {object} params An optional transaction object to pass to web3.
- * @param {function} callback An optional callback; if specified, the
- *        function executes asynchronously.
- *
- * @returns The txid if callback is not supplied.
- */
-Registrar.prototype.startAuctions = function startAuctions(names, params = {}, callback = null) {
-  const hashes = _.map(names, this.sha3);
-  const invalidNames = names.filter(
-    function isLongEnough(name) { return name.length < this.minLength; },
-    this
-  );
-
-  if (callback) {
-    if (invalidNames.length > 0) {
-      callback(Registrar.TooShort, null);
-    } else {
-      this.contract.startAuctions(hashes, params, callback);
-    }
-  } else {
-    if (invalidNames.length > 0) {
-      throw Registrar.TooShort;
-    }
-    return this.contract.startAuctions(hashes, params);
-  }
-};
-
-/**
- * ## Open Auctions
- *
  * Opens an auction for the desired name as well as several other randomly generated hashes,
  * this helps to prevent other bidders from guessing which names you are interested in.
  *
@@ -441,6 +373,10 @@ Registrar.prototype.newBid = function newBid(bid, params = {}, callback = null) 
     return this.contract.newBid(bid, params);
   }
 };
+
+
+
+
 
 /**
  * Submits the parameters of a bid. The registrar will then generate
