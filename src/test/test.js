@@ -56,8 +56,8 @@ describe('Registrar', () => {
           contract.ens.call((contractErr, value) => {
             assert.equal(contractErr, null, contractErr);
             ensRoot = value;
-            // the ethereum-ens module has a default address built in, but we can't
-            // use that on testnet.
+            // The ethereum-ens module has a default address built in, but we can't
+            // use that on testnet, so we get the ensRoot value from our deployment contract
             ens = new ENS(web3, ensRoot);
             contract.registrarInfo.call((registrarInfoErr, registrarInfoValue) => {
               assert.equal(registrarInfoErr, null, registrarInfoErr);
@@ -67,48 +67,6 @@ describe('Registrar', () => {
             });
           });
         }
-      });
-    });
-  });
-
-  describe('#startAuction()', () => {
-    it('Should return an error when the name is too short', (done) => {
-      registrar.startAuction('foo', { from: accounts[0] }, (err, txid) => {
-        assert.equal(err, Registrar.TooShort);
-        assert.equal(txid, null);
-        done();
-      });
-    });
-
-    it('Should return an error when the name contains special characters', (done) => {
-      registrar.startAuction('fooøøôôóOOOo', { from: accounts[0] }, (err, txid) => {
-        assert.equal(err, Registrar.SpecialCharacters);
-        assert.equal(txid, null);
-        done();
-      });
-    });
-
-
-    it('Should set an `Open` node to status `Auction`', (done) => {
-      registrar.startAuction('foobarbaz', { from: accounts[0] }, (err, txid) => {
-        assert.equal(err, null);
-        assert.equal(typeof txid, 'string');
-
-        const hash = registrar.sha3('foobarbaz');
-        registrar.contract.entries.call(hash, (entryErr, entryResult) => {
-          assert.equal(entryErr, null);
-          const status = entryResult[0].toString();
-          assert.equal(status, 1);
-          done();
-        });
-      });
-    });
-
-    it('Should return an error if given a nameprepped-name with any status other than `Open`', (done) => {
-      registrar.startAuction('foobarbaz', { from: accounts[0] }, (err, result) => {
-        assert.ok(err.toString().indexOf('invalid JUMP') !== -1, err);
-        assert.equal(result, null);
-        done();
       });
     });
   });
@@ -132,12 +90,12 @@ describe('Registrar', () => {
 
 
     it('Should set an `Open` node to status `Auction`', (done) => {
-      registrar.openAuction('bazbarfoo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('foobarbaz', { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, null);
         assert.equal(typeof txid, 'string');
 
         // TODO: also test to ensure that randomly generated decoy names are open
-        const hash = registrar.sha3('bazbarfoo');
+        const hash = registrar.sha3('foobarbaz');
         registrar.contract.entries.call(hash, (entryErr, entryResult) => {
           assert.equal(entryErr, null);
           const status = entryResult[0].toString();
@@ -183,29 +141,6 @@ describe('Registrar', () => {
     });
     it('Nameprep should ensure the same entry is returned regardless of capitalization', () => {
       assert.equal(registrar.getEntry('foobarbaz').hash, registrar.getEntry('FOOBarbaz').hash);
-    });
-  });
-
-  describe('#startAuctions()', () => {
-    it('Should return an error when any name is too short', (done) => {
-      const names = ['abcdefghij', 'abcdefghi', 'abcdefgh', 'abcd'];
-      registrar.startAuctions(names, { from: accounts[0], gas: 4700000 }, (err, result) => {
-        assert.equal(err, Registrar.TooShort);
-        assert.equal(result, null);
-        done();
-      });
-    });
-
-    it('Should set multiple valid nodes to status Auction', (done) => {
-      const names = ['bbb1111', 'bbb2222', 'bbb3333', 'bbb4444'];
-      registrar.startAuctions(names, { from: accounts[0], gas: 4700000 }, (err, result) => {
-        assert.equal(err, null);
-        assert.equal(typeof result, 'string');
-        names.forEach((name) => {
-          assert.equal(registrar.getEntry(name).status, 1);
-        });
-        done();
-      });
     });
   });
 
