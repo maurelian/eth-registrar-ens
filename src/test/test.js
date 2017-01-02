@@ -56,12 +56,13 @@ describe('Registrar', () => {
           contract.ens.call((contractErr, value) => {
             assert.equal(contractErr, null, contractErr);
             ensRoot = value;
+            // the ethereum-ens module has a default address built in, but we can't
+            // use that on testnet.
             ens = new ENS(web3, ensRoot);
             contract.registrarInfo.call((registrarInfoErr, registrarInfoValue) => {
               assert.equal(registrarInfoErr, null, registrarInfoErr);
               assert.ok(registrarInfoValue !== null);
-              registrar = new Registrar(web3);
-              registrar.init(ens);
+              registrar = new Registrar(web3, ens);
               done();
             });
           });

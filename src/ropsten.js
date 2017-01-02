@@ -16,35 +16,30 @@
     // the program will stop here, enter `c` to 'continue' or 'help'
     > c
 
-    < ens.registry.address:  0x112234455c3a32fd11230c42e7bccd4a84e02010
-    < registrar.address:  0x0000000000000000000000000000000000000000
-    break in ropsten.js:44
-     42     console.log('registrar.address: ', registrar.address);
-     43
-    >44     debugger;
-     45 });
-     46
+    break in ropsten.js:64
+     62   const registrar = new Registrar(web3);
+     63   const ens = registrar.ens; // eslint-disable-line
+    >64   debugger; // eslint-disable-line
+     65 });
+     66
 
     // The program stops again, enter `repl` to access the program's environment
     > repl
 
     Press Ctrl + C to leave debug repl
-    > registrar.getEntry('insurance');
+    > registrar.getEntry('insurance')
     { name: 'insurance',
       hash: '0x73079a5cb4c7d259f40c6d0841629e689d2a95b85883b371e075ffb2f329c3e1',
-      status: 0,
-      deed: '0x',
-      registrationDate: 0,
-      value: 0,
-      highestBid: 0 }
-    > registrar.getEntry('foundation');
-    { name: 'foundation',
-      hash: '0x0d5c1bd818a4086f28314415cb375a937593efab66f8f7d2903bf2a13ed35070',
       status: 2,
-      deed: '0x0b3184d5f567df9725025b61e117fc00e2be979e',
-      registrationDate: 1481556445,
-      value: 10000000000000000,
-      highestBid: 2100000000000000000 }
+      deed:
+       { address: '0x268e06911ba1ddc9138b355f9b42711abbc6eaec',
+         balance: { s: 1, e: 18, c: [Object] },
+         creationDate: { s: 1, e: 9, c: [Object] },
+         owner: '0x8394a052eb6c32fb9defcaabc12fcbd8fea0b8a8' },
+      registrationDate: 1481108206,
+      value: 5000000000000000000,
+      highestBid: 11100000000000000000,
+    mode: 'owned' }
   ```
 */
 
@@ -60,7 +55,6 @@ web3.eth.getAccounts((err, accts) => { // eslint-disable-line
   if (err) console.log(err); // eslint-disable-line
   // ens = new ENS(web3);
   const registrar = new Registrar(web3);
-  registrar.init();
   const ens = registrar.ens; // eslint-disable-line
   debugger; // eslint-disable-line
 });
