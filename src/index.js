@@ -9,27 +9,34 @@ const _ = require('underscore');
 const namehash = ENS.prototype.namehash;
 
 
-
 /**
  * Constructs a new Registrar instance, providing an easy-to-use interface to the
  * [Initial Registrar][wiki], which governs the `.eth` namespace.  Either Registrar.init(),
  * or registrar.initDefault() must be called
  * [wiki]: https://github.com/ethereum/ens/wiki
  *
- * Example usage:
+ * ### Example usage:
  *
  *     var Registrar = require('eth-registrar-ens');
  *     var Web3 = require('web3');
  *
  *     var web3 = new Web3();
- *     var registrar = new Registrar(web3)
  *
- *     // On Ropsten with the public ENS registry
- *     registrar.init();
- *     console.log(registrar.ens.registry.address);
- *     // '0x112234455c3a32fd11230c42e7bccd4a84e02010'
- *     console.log(registrar.rootNode);
- *     // '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae'
+ * The public ENS is already deployed on Ropsten at `0x112234455c3a32fd11230c42e7bccd4a84e02010`.
+ * It will be at the same address when deployed on the Ethereum Main net. This package imports the
+ * [`ethereum-ens`](https://www.npmjs.com/package/ethereum-ens) package, and defaults to the public ENS address,
+ * so all that is needed to construct it is `[web3](https://www.npmjs.com/package/web3)`. The rest is optional.
+ *
+ *     var registrar = new Registrar(web3);
+ *
+ * If you are working with another instance of the ENS, you will need to instantiate your own
+ * 'ethereum-ens' object with the correct address. You can also specify a custom TLD, and minimum
+ * character length for valid names.
+ *
+ *     var ENS = require('ethereum-ens');
+ *     var yourEnsAddress = '0x0dfc1...'
+ *     var ens = new ENS(web3, address)
+ *     var registrar = new Registrar(web3, ens, 'yourTLD', 0);
  *
  *     var name = 'foobarbaz';
  *     registrar.startAuction(name);
@@ -52,9 +59,6 @@ const namehash = ENS.prototype.namehash;
  *     registrar.finalizeAuction(name);
  *
  *
- *
- *
- *
  * Throughout this module, the same optionally-asynchronous pattern as web3 is
  * used: all functions that call web3 take a callback as an optional last
  * argument; if supplied, the function returns nothing, but instead calls the
@@ -74,10 +78,12 @@ const namehash = ENS.prototype.namehash;
  * @param {string} tld The top level domain
  * @param {string} ens The address of the ENS instance
  */
-function Registrar(web3) {
+function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7) {
   this.web3 = web3;
 
-  // Fix web3 < 0.16 breaking change (leading 0x)
+  // prior to version 0.16, web3.sha3 didn't prepend '0x', to support both options
+  // here we attach a sha3 method to the registrar object, and ensure that it
+  // always prepends '0x'
   this.sha3 = function sha3withZeroX(...args) {
     const result = web3.sha3.apply(this, args);
     if (result[1] !== 'x') {
@@ -85,20 +91,14 @@ function Registrar(web3) {
     }
     return result;
   };
-}
 
-// const publicRegistryAddress = '0x112234455c3a32fd11230c42e7bccd4a84e02010';
-
-Registrar.prototype.init = function init(ens, tld, minLength) {
-  // get registrar address from ens
-  this.ens = ens || new ENS(this.web3);
-  this.tld = tld || 'eth';
-  this.minLength = minLength || 7;
+  this.ens = ens;
+  this.tld = tld;
+  this.minLength = minLength;
   this.address = this.ens.owner(this.tld);
   this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
-  // this isn't used yet, but I expect it will be handy
-  this.rootNode = namehash(this.tld);
-};
+  this.rootNode = namehash(this.tld); // this isn't used yet, but I expect it will be handy
+}
 
 Registrar.TooShort = Error('Name is too short');
 
