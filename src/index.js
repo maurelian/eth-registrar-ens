@@ -145,6 +145,7 @@ Registrar.prototype.validateName = function validateName(name) {
  * @param {number} highestBid
  */
 function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
+  // TODO: improve Entry constructor so that unknown names can be handled via getEntry
   this.name = name;
   this.hash = hash;
   this.status = status;
@@ -157,8 +158,8 @@ function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
 
   let mode = '';
 
-  // TODO: improve this so that unknown names can be handled via getEntry
-  if (name.length <= 7) {
+  // TODO: make the minimum length dynamic to match the Registrar constructor
+  if (name.length < 7) {
     // If name is short, check if it has been bought
     if (this.status === 0) {
       // TODO: Calling this 'invalid' is confusing, it's not the same as 'invalidated'
