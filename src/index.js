@@ -347,13 +347,13 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret)
  */
 Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = null) {
   if (callback) {
-    if (!params.value) {
+    if (params.value < bid.value) {
       callback(Registrar.NoDeposit, null);
     } else {
       this.contract.newBid(bid.shaBid, params, callback);
     }
   } else {
-    if (!params.value) {
+    if (params.value < bid.value) {
       throw Registrar.NoDeposit;
     }
     return this.contract.newBid(bid.shaBid, params);

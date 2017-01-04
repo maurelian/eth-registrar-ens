@@ -151,23 +151,37 @@ describe('Registrar', () => {
       const bid = registrar.bidFactory(
         'foobarbaz',
         '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
-        web3.toWei(1, 'ether'), // value
-        'secret',
-        web3.toWei(2, 'ether') // deposit
+        web3.toWei(2, 'ether'), // value
+        'secret'
       );
       bidObject = bid;
       done();
     });
 
+    it.skip('Should return the same hash for an identical Nameprep name', (done) => {
+      // considering creating a separate set of tests for bidFactory()
+      done();
+    });
+
     it('The bid should be a valid 32 byte hashed bid', () => {
       // The shaBid value was generated previously using web3 via the node repl
-      const shaBid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
+      const shaBid = '0x77d4ed2ca7aae73b484e5a9a6e3306c5cbecfbca958381552b8c646250495ae3';
       assert.equal(bidObject.shaBid, shaBid);
+    });
+
+    it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
+      registrar.submitBid(bidObject,
+        { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 },
+        (submitBidErr, submitBidResult) => {
+          assert.equal(submitBidErr, Registrar.NoDeposit);
+          assert.equal(submitBidResult, null);
+          done();
+        });
     });
 
     it('Should create a new sealedBid Deed holding the value of deposit', (done) => {
       registrar.submitBid(bidObject,
-        { from: accounts[0], value: web3.toWei(2, 'ether'), gas: 4700000 },
+        { from: accounts[0], value: web3.toWei(3, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
@@ -176,18 +190,10 @@ describe('Registrar', () => {
               assert.equal(sealedBidError, null);
               assert.ok(sealedBidResult !== '0x0000000000000000000000000000000000000000',
                 sealedBidResult);
-              assert.equal(web3.eth.getBalance(sealedBidResult), web3.toWei(2, 'ether'));
+              assert.equal(web3.eth.getBalance(sealedBidResult), web3.toWei(3, 'ether'));
               done();
             });
         });
-    });
-
-    it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
-      done();
-    });
-
-    it('Should return the same hash for an identical Nameprep names', (done) => {
-      done();
     });
   });
 
