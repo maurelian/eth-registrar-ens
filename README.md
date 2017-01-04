@@ -35,15 +35,16 @@ or registrar.initDefault() must be called
 
     var web3 = new Web3();
 
-The public ENS is already deployed on Ropsten at `0x112234455c3a32fd11230c42e7bccd4a84e02010`. 
+The public ENS is already deployed on Ropsten at `0x112234455c3a32fd11230c42e7bccd4a84e02010`.
 It will be at the same address when deployed on the Ethereum Main net. This package imports the
 [`ethereum-ens`](https://www.npmjs.com/package/ethereum-ens) package, and defaults to the public ENS address,
 so all that is needed to construct it is `[web3](https://www.npmjs.com/package/web3)`. The rest is optional.
 
     var registrar = new Registrar(web3);
 
-If you are working with another instance of the ENS, you will need to instantiate your own 'ethereum-ens' object with the correct address. You can also specify a custom TLD, and minimum
-character length for valid names. 
+If you are working with another instance of the ENS, you will need to instantiate your own
+'ethereum-ens' object with the correct address. You can also specify a custom TLD, and minimum
+character length for valid names.
 
     var ENS = require('ethereum-ens');
     var yourEnsAddress = '0x0dfc1...'
@@ -103,40 +104,7 @@ Returns the properties of the entry for a given a name
 
 Returns **any** An Entry object
 
-### startAuction
-
-### Start Auction
-
-Converts a name to a hash string, and opens an auction on that hash.
-
-**Parameters**
-
--   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The name to start an auction on
--   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3.
--   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
-           function executes asynchronously.
-
-Returns **any** The txid if callback is not supplied.
-
-### startAuctions
-
-### Start Auctions (plural)
-
-Opens auctions for multiple names at once. Since names are registered as hashes,
-this helps to prevent other bidders from guessing which names you are interested in.
-
-**Parameters**
-
--   `names` **[array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** An array of names to start auctions on
--   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3.
--   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
-           function executes asynchronously.
-
-Returns **any** The txid if callback is not supplied.
-
 ### openAuction
-
-### Open Auctions
 
 Opens an auction for the desired name as well as several other randomly generated hashes,
 this helps to prevent other bidders from guessing which names you are interested in.
@@ -150,13 +118,12 @@ this helps to prevent other bidders from guessing which names you are interested
 
 Returns **any** The txid, array of randomly generated names if callback is not supplied.
 
-### shaBid
+### bidFactory
 
-Generates the "bid string" (hash) which representing a sealed bid. This does not
-submit the bid to the registrar, it only calls on the registrar's corresponding
-method.
-
-ToDo: Make `owner` default to sender if not specified.
+Constructs a Bid object, with properties corresponding exactly to the
+inputs of the registrar contracts 'shaBid' function.
+When a bid is submitted, these values will be save so that they can be used
+to reveal the bid params later.
 
 **Parameters**
 
@@ -165,23 +132,19 @@ ToDo: Make `owner` default to sender if not specified.
 -   `value` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The value of your bid in wei
 -   `secret` **secret** An optional random value
 -   `owner`  
--   `callback`   (optional, default `null`)
 
-Returns **any** the sealed bid hash string
+### submitBid
 
-### newBid
-
-Submits a bid string to the registrar, creating a new sealed bid entry.
-The value
+Submits a sealed bid and deposit to the registrar contract
 
 **Parameters**
 
 -   `bid` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** 
--   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** A dict of parameters to pass to web3. An amount must be included.
+-   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3. The value sent must be
+      at least as much as the bid value.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
            function executes asynchronously.
-
-Returns **any** The transaction ID if callback is not supplied.
+-   `bid` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A Bid object.
 
 ### unsealBid
 

@@ -144,94 +144,54 @@ describe('Registrar', () => {
     });
   });
 
-  describe('#shaBid()', () => {
-    it('Should return a valid 32 byte hashed bid', (done) => {
-      // This is just a randomly generated address from TestRPC,
-      // the owner does not need to be your address
-      // but presumably you want it to be.
-      const testOwner = '0x5834eb6b2acac5b0bfff8413622704d890f80e9e';
-      // const secret = registrar.sha3('secret');
-      const secret = 'secret';
-      const value = web3.toWei(1, 'ether');
-      // FIXME: this should calculate and verify the bid string
-      const bid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
-      registrar.shaBid('foobarbaz', testOwner, value, secret, (err, result) => {
-        if (err) done(err);
-        assert.equal(result, bid);
-        done(err);
-      });
-    });
-    it('Should return the same hash for identical Nameprep names', (done) => {
-      // This is just a randomly generated address from TestRPC,
-      // the owner does not need to be your address
-      // but presumably you want it to be.
-      const testOwner = '0x5834eb6b2acac5b0bfff8413622704d890f80e9e';
-      const secret = 'secret';
-      const bid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
-      const value = web3.toWei(1, 'ether');
-      registrar.shaBid('FOOBARBAZ', testOwner, value, secret, (err, result) => {
-        if (err) done(err);
-        assert.equal(result, bid);
-        done(err);
-      });
+  describe('#submitBid()', () => {
+    // generate and submit the bid
+    let bidObject = null;
+    before((done) => {
+      const bid = registrar.bidFactory(
+        'foobarbaz',
+        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        web3.toWei(1, 'ether'), // value
+        'secret',
+        web3.toWei(2, 'ether') // deposit
+      );
+      bidObject = bid;
+      done();
     });
 
-    it.skip('Should save the bid params to a local file', (done) => {
-      fs.readFile('/.bids', (err, result) => {
-        if (err) done(err);
-        const bids = JSON.parse(result);
-        const bid = bids['foobarbaz']; // eslint-disable-line
-        const secret = bid.secret;
-        assert.ok(bid !== null);
-        assert.ok(secret !== null);
-        done();
-      });
+    it('The bid should be a valid 32 byte hashed bid', () => {
+      // The shaBid value was generated previously using web3 via the node repl
+      const shaBid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
+      assert.equal(bidObject.shaBid, shaBid);
     });
-  });
 
-  describe('#newBid()', () => {
-    const bid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
-    const deposit = web3.toWei(2, 'ether');
-    it('Should throw an error if a deposit amount is not specified', (done) => {
-      registrar.newBid(bid, { from: accounts[0] }, (err, result) => {
-        assert.equal(err, Registrar.NoDeposit);
-        assert.equal(result, null);
-        done();
-      });
-    });
     it('Should create a new sealedBid Deed holding the value of deposit', (done) => {
-      registrar.newBid(bid, { from: accounts[0], gas: 4700000, value: deposit }, (err, result) => {
-        assert.equal(err, null);
-        assert.ok(result !== null);
-        registrar.contract.sealedBids.call(bid, (sealedBidError, sealedBidResult) => {
-          assert.equal(sealedBidError, null);
-          assert.ok(sealedBidResult !== '0x0000000000000000000000000000000000000000', sealedBidResult);
-          assert.equal(web3.eth.getBalance(sealedBidResult), deposit);
-          done();
+      registrar.submitBid(bidObject,
+        { from: accounts[0], value: web3.toWei(2, 'ether'), gas: 4700000 },
+        (submitBidErr, submitBidResult) => {
+          assert.equal(submitBidErr, null);
+          assert.ok(submitBidResult != null);
+          registrar.contract.sealedBids.call(
+            bidObject.shaBid, (sealedBidError, sealedBidResult) => {
+              assert.equal(sealedBidError, null);
+              assert.ok(sealedBidResult !== '0x0000000000000000000000000000000000000000',
+                sealedBidResult);
+              assert.equal(web3.eth.getBalance(sealedBidResult), web3.toWei(2, 'ether'));
+              done();
+            });
         });
-      });
+    });
+
+    it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
+      done();
+    });
+
+    it('Should return the same hash for an identical Nameprep names', (done) => {
+      done();
     });
   });
 
-  describe.skip('#submitShaBid()', () => {
-    // TODO: write submitShaBid()
-    it('Should combine shaBid and newBid', (done) => {
-      const bidParams = {
-        name: 'foobarbaz',
-        owner: accounts[0],
-        value: web3.toWei(1, 'ether'),
-        deposit: web3.toWei(2, 'ether'),
-        secret: 'secret'
-      };
-      registrar.newShaBid(bidParams, (err, result) => {
-        assert.equal(err, null);
-        assert.equal(result, 'something');
-        done();
-      });
-    });
-  });
-
-  describe('#unsealBid()', () => {
+  describe.skip('#unsealBid()', () => {
     // The sealed bid created to test #newBid()
     const bid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
     const testOwner = '0x5834eb6b2acac5b0bfff8413622704d890f80e9e';
@@ -258,11 +218,25 @@ describe('Registrar', () => {
     });
   });
 
-  describe.skip('finalizeAuction', () => {
+  describe.skip('#finalizeAuction()', () => {
     it('Should update the deed to hold the value of the winning bid', (done) => {
       // test body
       done();
     });
+  });
+
+  describe.skip('#invalidateName()', () => {
+  });
+
+  describe.skip('#invalidateName()', () => {
+  });
+
+  describe.skip('#releaseDeed()', () => {
+  });
+
+  describe.skip('#cancelBid()', () => {
+  });
+  describe.skip('#transfer()', () => {
   });
 });
 
@@ -274,30 +248,4 @@ describe('Registrar', () => {
       done();
     });
   });
-*/
-
-
-/*
-  #cancelBid()
-  * should...
-*/
-
-/*
-  #finalizeAuction()
-  * should...
-
-
-/*
-  #transfer()
-  * should...
-*/
-
-/*
-  #releaseDeed()
-  * should...
-*/
-
-/*
-  #invalidateName()
-  * should...
 */
