@@ -303,80 +303,62 @@ Registrar.prototype.openAuction = function openAuction(name, params = {}, callba
   }
 };
 
+Registrar.NoDeposit = Error('You must specify a deposit amount greater than the value of your bid');
 
 /**
- * Generates the "bid string" (hash) which representing a sealed bid. This does not
- * submit the bid to the registrar, it only calls on the registrar's corresponding
- * method.
- *
- * ToDo: Make `owner` default to sender if not specified.
+ * Constructs a Bid object, with properties corresponding exactly to the
+ * inputs of the registrar contracts 'shaBid' function.
+ * When a bid is submitted, these values will be save so that they can be used
+ * to reveal the bid params later.
  *
  * @param {string} name The name to be bid on
  * @param {string} address An optional owner address
  * @param {number} value The value of your bid in wei
  * @param {secret} secret An optional random value
- *
- * @returns the sealed bid hash string
  */
-// How should we better handle secret generation and storage?
-// it could be abstracted away and handle generation, storage agnd retrieval.
-Registrar.prototype.shaBid = function shaBid(name, owner, value, secret, callback = null) {
-  const clean = cleanName(name);
-  const hash = this.sha3(clean);
-  const hexSecret = this.sha3(secret);
-
-  if (callback) {
-    this.contract.shaBid(hash, owner, value, hexSecret, callback);
-  } else {
-    return this.contract.shaBid(hash, owner, value, hexSecret);
-  }
+// TODO: set default address on the registrar and use it for owner default value
+Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret) {
+  const sha3 = this.sha3;
+  const bidObject = {
+    name: cleanName(name),
+    // TODO: consider renaming any hashes to  `this.node`
+    hash: sha3(name),
+    value,
+    owner,
+    secret,
+    hexSecret: sha3(secret),
+    // Use the bid properties to get the shaBid value from the contract
+    shaBid: this.contract.shaBid(sha3(name), owner, value, sha3(secret))
+  };
+  return bidObject;
 };
 
-Registrar.NoDeposit = Error('You must specify a deposit amount greater than the value of your bid');
 
 /**
- * Submits a bid string to the registrar, creating a new sealed bid entry.
- * The value
+ * Submits a sealed bid and deposit to the registrar contract
  *
  * @param {string} bid
- * @param {object} params A dict of parameters to pass to web3. An amount must be included.
+ * @param {object} params An optional transaction object to pass to web3. The value sent must be
+ *   at least as much as the bid value.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
- * @returns The transaction ID if callback is not supplied.
+ * @param {object} bid A Bid object.
  */
-/* At present this provides very little utility, aside from
- putting the method where you would expect it to be.
- * More value would be in:
-    * creating the bid hash string
-    * accepting the value as a "deposit" variable
-    * accepting a bid object:
-    {
-        name: "name",
-        owner: "0xaddress",
-        value: 1,
-        deposit: 2,
-        secret: "secret"
-    }
-*/
-Registrar.prototype.newBid = function newBid(bid, params = {}, callback = null) {
-  // Unlike the previous methods, params are necessary here in order to make the deposit
+Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = null) {
   if (callback) {
     if (!params.value) {
       callback(Registrar.NoDeposit, null);
     } else {
-      this.contract.newBid(bid, params, callback);
+      this.contract.newBid(bid.shaBid, params, callback);
     }
   } else {
     if (!params.value) {
       throw Registrar.NoDeposit;
     }
-    return this.contract.newBid(bid, params);
+    return this.contract.newBid(bid.shaBid, params);
   }
 };
-
-
-
 
 
 /**
@@ -387,6 +369,7 @@ Registrar.prototype.newBid = function newBid(bid, params = {}, callback = null) 
  * and bid value will be returned to you, and the previous highest bidder will have
  * their funds returned. If you are not the highest bidder, all your funds will be
  * returned. Returns are sent to the owner address on the bid.
+ *
  *
  * @param {string} name
  * @param {address} owner An optional owner address; defaults to sender
