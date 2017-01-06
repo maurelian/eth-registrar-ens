@@ -13,6 +13,10 @@ let accounts = null;
 let ens = null;
 let ensRoot = null;
 let registrar = null;
+let highBid = null;
+// TODO: test submitting and revealing low bid
+let lowBid = null;   // eslint-disable-line
+let capitalizedBid = null;
 
 // web3.setProvider(TestRPC.provider()); // Unfortunately this doesn't support synchronous calls
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
@@ -45,7 +49,6 @@ describe('Registrar', () => {
       const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
       const deployer = compiled['DeployENS']; // eslint-disable-line
       const deployensContract = web3.eth.contract(deployer.interface);
-
       deployensContract.new({
         from: accts[0],
         data: deployer.bytecode,
@@ -68,6 +71,43 @@ describe('Registrar', () => {
           });
         }
       });
+    });
+  });
+
+  before(() => {
+    // Declare various bids for testing in advance
+    highBid = registrar.bidFactory(
+        'foobarbaz',
+        // just a randomly generated ethereum address
+        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        web3.toWei(2, 'ether'), // value
+        'secret'
+    );
+    lowBid = registrar.bidFactory(
+        'foobarbaz',
+        // just a randomly generated ethereum address
+        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        web3.toWei(2, 'ether'), // value
+        'secret'
+    );
+
+    capitalizedBid = registrar.bidFactory(
+        'FOObarBAZ',
+        // just a randomly generated ethereum address
+        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        web3.toWei(2, 'ether'), // value
+        'secret'
+    );
+  });
+
+  describe('#bidFactory()', () => {
+    it('Should generate the correct 32 byte shaBid string', () => {
+      const shaBid = '0x77d4ed2ca7aae73b484e5a9a6e3306c5cbecfbca958381552b8c646250495ae3';
+      assert.equal(highBid.shaBid, shaBid);
+    });
+
+    it('Should return the same bid string for the same bid on an identical Nameprep name', () => {
+      assert.equal(highBid.shaBid, capitalizedBid.shaBid);
     });
   });
 
@@ -145,32 +185,8 @@ describe('Registrar', () => {
   });
 
   describe('#submitBid()', () => {
-    // generate and submit the bid
-    let bidObject = null;
-    before((done) => {
-      const bid = registrar.bidFactory(
-        'foobarbaz',
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
-        web3.toWei(2, 'ether'), // value
-        'secret'
-      );
-      bidObject = bid;
-      done();
-    });
-
-    it.skip('Should return the same hash for an identical Nameprep name', (done) => {
-      // considering creating a separate set of tests for bidFactory()
-      done();
-    });
-
-    it('The bid should be a valid 32 byte hashed bid', () => {
-      // The shaBid value was generated previously using web3 via the node repl
-      const shaBid = '0x77d4ed2ca7aae73b484e5a9a6e3306c5cbecfbca958381552b8c646250495ae3';
-      assert.equal(bidObject.shaBid, shaBid);
-    });
-
     it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
-      registrar.submitBid(bidObject,
+      registrar.submitBid(highBid,
         { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, Registrar.NoDeposit);
@@ -180,13 +196,13 @@ describe('Registrar', () => {
     });
 
     it('Should create a new sealedBid Deed holding the value of deposit', (done) => {
-      registrar.submitBid(bidObject,
+      registrar.submitBid(highBid,
         { from: accounts[0], value: web3.toWei(3, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
           registrar.contract.sealedBids.call(
-            bidObject.shaBid, (sealedBidError, sealedBidResult) => {
+            highBid.shaBid, (sealedBidError, sealedBidResult) => {
               assert.equal(sealedBidError, null);
               assert.ok(sealedBidResult !== '0x0000000000000000000000000000000000000000',
                 sealedBidResult);
@@ -197,17 +213,12 @@ describe('Registrar', () => {
     });
   });
 
-  describe.skip('#unsealBid()', () => {
-    // The sealed bid created to test #newBid()
-    const bid = '0xe686eacb824a48d85d81232df929536d630a0d0d225f8ce7ce68ba9f824a2606';
-    const testOwner = '0x5834eb6b2acac5b0bfff8413622704d890f80e9e';
-    const secret = 'secret';
-    const value = web3.toWei(1, 'ether');
+  describe('#unsealBid()', () => {
     it('Should delete the sealedBid Deed', (done) => {
-      registrar.unsealBid('foobarbaz', testOwner, value, secret, { from: accounts[1], gas: 4700000 }, (err, result) => {
+      registrar.unsealBid(highBid, { from: accounts[1], gas: 4700000 }, (err, result) => {
         assert.equal(err, null);
         assert.ok(result !== null);
-        registrar.contract.sealedBids.call(bid, (sealedBidErr, sealedBidResult) => {
+        registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
           assert.equal(sealedBidErr, null);
           assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
           done();
@@ -218,20 +229,44 @@ describe('Registrar', () => {
       registrar.getEntry('foobarbaz', (err, result) => {
         assert.equal(result.name, 'foobarbaz');
         assert.ok(result.deed.address !== '0x0000000000000000000000000000000000000000');
-        assert.equal(Number(result.highestBid), web3.toWei(1, 'ether'));
+        assert.equal(Number(result.highestBid), highBid.value);
         done();
       });
     });
   });
 
-  describe.skip('#finalizeAuction()', () => {
-    it('Should update the deed to hold the value of the winning bid', (done) => {
-      // test body
-      done();
+  describe('#finalizeAuction()', () => {
+    it('Should throw an error if called too soon', (done) => {
+      registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
+        (finalizeAuctionErr, finalizeAuctionResult) => {
+          assert.ok(finalizeAuctionErr.toString().indexOf('invalid JUMP') !== -1, finalizeAuctionErr);
+          assert.equal(finalizeAuctionResult, null);
+          done();
+        });
     });
-  });
 
-  describe.skip('#invalidateName()', () => {
+
+    it('Should update the deed to hold the value of the winning bid', (done) => {
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        // 86400 seconds per day, first auctions end 4 weeks after registrar contract is deployed
+        params: [86400 * 7 * 4],
+        id: new Date().getTime()
+      }, () => {
+        registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
+          (finalizeAuctionErr, finalizeAuctionResult) => {
+            assert.equal(finalizeAuctionErr, null);
+            assert.ok(finalizeAuctionResult != null);
+            registrar.getEntry('foobarbaz', (getEntryErr, getEntryResult) => {
+              assert.equal(getEntryErr, null);
+              assert.equal(getEntryResult.status, 2);
+              assert.equal(getEntryResult.mode, 'owned');
+              done();
+            });
+          });
+      });
+    });
   });
 
   describe.skip('#invalidateName()', () => {

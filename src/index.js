@@ -319,16 +319,17 @@ Registrar.NoDeposit = Error('You must specify a deposit amount greater than the 
 // TODO: set default address on the registrar and use it for owner default value
 Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret) {
   const sha3 = this.sha3;
+  const cleanedName = cleanName(name);
   const bidObject = {
-    name: cleanName(name),
+    name: cleanedName,
     // TODO: consider renaming any hashes to  `this.node`
-    hash: sha3(name),
+    hash: sha3(cleanedName),
     value,
     owner,
     secret,
     hexSecret: sha3(secret),
     // Use the bid properties to get the shaBid value from the contract
-    shaBid: this.contract.shaBid(sha3(name), owner, value, sha3(secret))
+    shaBid: this.contract.shaBid(sha3(cleanedName), owner, value, sha3(secret))
   };
   return bidObject;
 };
@@ -371,26 +372,18 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
  * returned. Returns are sent to the owner address on the bid.
  *
  *
- * @param {string} name
- * @param {address} owner An optional owner address; defaults to sender
- * @param {number} value The value of your bid
- * @param {secret} secret The secret used to create the bid string
+ * @param {string} bid A bid object
  * @param {object} options An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
  * @returns The transaction ID if callback is not supplied.
  */
-Registrar.prototype.unsealBid = function
-  unsealBid(name, owner, value, secret, params = {}, callback = null) {
-  const clean = cleanName(name);
-  const hash = this.sha3(clean);
-  const hexSecret = this.sha3(secret);
-
+Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = null) {
   if (callback) {
-    this.contract.unsealBid(hash, owner, value, hexSecret, params, callback);
+    this.contract.unsealBid(bid.hash, bid.owner, bid.value, bid.hexSecret, params, callback);
   } else {
-    return this.contract.unsealBid(hash, owner, value, hexSecret, params);
+    return this.contract.unsealBid(bid.hash, bid.owner, bid.value, bid.hexSecret, params);
   }
 };
 
@@ -408,13 +401,13 @@ Registrar.prototype.unsealBid = function
  * @returns The transaction ID if callback is not supplied.
  */
 Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}, callback = null) {
-  const clean = cleanName(name);
-  const hash = this.sha3(clean);
+  const cleanedName = cleanName(name);
+  const hash = this.sha3(cleanedName);
 
   if (callback) {
-    this.contract.startAuction(hash, params, callback);
+    this.contract.finalizeAuction(hash, params, callback);
   } else {
-    return this.contract.startAuction(hash, params);
+    return this.contract.finalizeAuction(hash, params);
   }
 };
 
