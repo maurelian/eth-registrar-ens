@@ -396,13 +396,18 @@ Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = 
  *
  */
 Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
-  this.contract.sealedBids.call(bid.shaBid, (err, result) => {
-    if (err) {
-      return callback(err);
-    }
-    // sealedBid's deed should be deleted
-    callback(null, result === '0x0000000000000000000000000000000000000000');
-  });
+  if (callback) {
+    this.contract.sealedBids.call(bid.shaBid, (err, result) => {
+      if (err) {
+        return callback(err);
+      }
+      // sealedBid's deed should be deleted
+      callback(null, result === '0x0000000000000000000000000000000000000000');
+    });
+  } else {
+    return this.contract.sealedBids.call(bid.shaBid) ===
+      '0x0000000000000000000000000000000000000000';
+  }
 };
 
 /**

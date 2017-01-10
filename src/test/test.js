@@ -215,6 +215,9 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as not revealed yet', (done) => {
+      // synchronous
+      assert.equal(registrar.isBidRevealed(highBid), false);
+      // asynchronous
       registrar.isBidRevealed(highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, false);
@@ -247,6 +250,9 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as revealed', (done) => {
+      // synchronous
+      assert.equal(registrar.isBidRevealed(highBid), true);
+      // asynchronous
       registrar.isBidRevealed(highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, true);
