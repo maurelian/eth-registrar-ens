@@ -392,7 +392,10 @@ Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = 
  * is revealed or not.
  *
  * @param {string} bid A bid object
- * @param {function} callback
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ *
+ * @returns If the bid was revealed or not.
  *
  */
 Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
