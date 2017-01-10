@@ -213,6 +213,16 @@ describe('Registrar', () => {
     });
   });
 
+  describe('#isBidRevealed()', () => {
+    it('Should return the bid as not revealed yet', (done) => {
+      registrar.isBidRevealed(highBid, (err, isRevealed) => {
+        assert.equal(err, null);
+        assert.equal(isRevealed, false);
+        done();
+      });
+    });
+  });
+
   describe('#unsealBid()', () => {
     it('Should delete the sealedBid Deed', (done) => {
       registrar.unsealBid(highBid, { from: accounts[1], gas: 4700000 }, (err, result) => {
@@ -230,6 +240,16 @@ describe('Registrar', () => {
         assert.equal(result.name, 'foobarbaz');
         assert.ok(result.deed.address !== '0x0000000000000000000000000000000000000000');
         assert.equal(Number(result.highestBid), highBid.value);
+        done();
+      });
+    });
+  });
+
+  describe('#isBidRevealed()', () => {
+    it('Should return the bid as revealed', (done) => {
+      registrar.isBidRevealed(highBid, (err, isRevealed) => {
+        assert.equal(err, null);
+        assert.equal(isRevealed, true);
         done();
       });
     });
