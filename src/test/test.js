@@ -9,6 +9,10 @@ const Web3 = require('web3');
 
 const web3 = new Web3();
 
+// Unfortunately invoking TestRPC here doesn't support synchronous calls
+// web3.setProvider(TestRPC.provider());
+web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+
 let accounts = null;
 let ens = null;
 let ensRoot = null;
@@ -17,9 +21,6 @@ let highBid = null;
 // TODO: test submitting and revealing low bid
 let lowBid = null;   // eslint-disable-line
 let capitalizedBid = null;
-
-// web3.setProvider(TestRPC.provider()); // Unfortunately this doesn't support synchronous calls
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 
 describe('Registrar', () => {
