@@ -32,23 +32,29 @@ describe('Registrar', () => {
         throw err;
       }
       accounts = accts;
-      /*
-      // Use this block to recompile and save
-      // Otherwise it's too slow for dev purposes
-      const input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
-      const output = solc.compile(input, 1);
-      const compiled = {};
-      for (const contractName in output.contracts) {
-        // code and ABI that are needed by web3
-        compiled[contractName] = {};
-        compiled[contractName].bytecode = output.contracts[contractName].bytecode;
-        compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
+
+      let deployer; // this will hold the deployENS contract code and interface
+      // Check if compiled contracts are available, if not, recompile and save
+      const compiledFile = fs.existsSync('src/test/contracts.json');
+
+      if (!compiledFile) {
+        const sources = {};
+        sources['interface.sol'] = fs.readFileSync('node_modules/ens/interface.sol').toString();
+        sources['ENS.sol'] = fs.readFileSync('node_modules/ens/ENS.sol').toString();
+        sources['hashRegistrarSimplified.sol'] = fs.readFileSync('node_modules/ens/hashRegistrarSimplified.sol').toString();
+        sources['dotEthRegistrar.sol'] = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
+
+        const compiled = solc.compile({ sources }, 1);
+        deployer = {
+          interface: JSON.parse(compiled.contracts.DeployENS.interface),
+          bytecode: compiled.contracts.DeployENS.bytecode
+        };
+        // save the compiled code for next time
+        fs.writeFileSync('src/test/contracts.json', JSON.stringify(deployer));
+      } else {
+        deployer = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
       }
-      fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
-      */
-      // Use to speed up the testing process during development:
-      const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
-      const deployer = compiled['DeployENS']; // eslint-disable-line
+
       const deployensContract = web3.eth.contract(deployer.interface);
       deployensContract.new({
         from: accts[0],
