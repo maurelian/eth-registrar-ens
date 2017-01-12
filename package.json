@@ -8,9 +8,9 @@
     "lib"
   ],
   "scripts": {
-    "pretest": "npm run lint",
     "prepublish": "npm run build",
     "test": "mocha src/test/test",
+    "posttest": "npm run lint",
     "build": "babel src -d lib && documentation readme src/index.js -f md -s 'Overview'",
     "lint": "eslint src --ignore-path .gitignore"
   },
