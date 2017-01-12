@@ -1,10 +1,9 @@
 const interfaces = require('./interfaces.js');
 
 const ENS = require('ethereum-ens');
-const StringPrep = require('node-stringprep').StringPrep;
 
-const NamePrep = new StringPrep('nameprep');
 const namehash = ENS.prototype.namehash;
+const normalise = ENS.prototype.normalise;
 
 
 /**
@@ -107,34 +106,9 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7) {
 
 Registrar.TooShort = Error('Name is too short');
 
-/**
- * Maps special characters to a similar "canonical" character.
- * We are being much more stringent than nameprep for now.
- * @ignore
-*/
-function cleanName(input) {
-  return NamePrep.prepare(input)
-    .replace(/[áăǎâäȧạȁàảȃāąᶏẚåḁⱥã]/g, 'a')
-    .replace(/[èéêëēěĕȅȩḙėẹẻęẽ]/g, 'e')
-    .replace(/[íĭǐîïịȉìỉȋīįᶖɨĩḭ]/g, 'i')
-    .replace(/[óŏǒôöȯọőȍòỏơȏꝋꝍⱺōǫøõ]/g, 'o')
-    .replace(/[úŭǔûṷüṳụűȕùủưȗūųᶙůũṵ]/g, 'u')
-    .replace(/[çćčĉċ]/g, 'c')
-    .replace(/[śšşŝșṡṣʂᵴꞩᶊȿ]/g, 's')
-    .replace(/[^a-z0-9\-_]*/g, '');
-}
-
-Registrar.SpecialCharacters = Error(
-    'Name cannot contain special characters other than ' +
-    'a-z, 0-9, \'-\' and \'_\'.'
-);
-
-Registrar.prototype.validateName = function validateName(name) {
+Registrar.prototype.checkLength = function checkLength(name) {
   if (name.length < this.minLength) {
     throw Registrar.TooShort;
-  }
-  if (name !== cleanName(name)) {
-    throw Registrar.SpecialCharacters;
   }
 };
 
@@ -267,7 +241,7 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
   let name = input;
   // if the input is a name
   if (input.substring(0, 2) !== '0x') {
-    name = cleanName(input);
+    name = normalise(input);
     hash = this.sha3(name);
   }
 
@@ -317,8 +291,6 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
  * @returns {string} The transaction ID if callback is not supplied.
  */
 Registrar.prototype.openAuction = function openAuction(name, params = {}, callback = null) {
-  const hash = this.sha3(name);
-
   // Generate an array of random hashes
   const randomHashes = new Array(10);
   for (let i = 0; i < randomHashes.length; i++) {
@@ -326,18 +298,27 @@ Registrar.prototype.openAuction = function openAuction(name, params = {}, callba
   }
   // Randomly select an array entry to replace with the name we want
   const j = Math.floor(Math.random() * 10);
-  randomHashes[j] = hash;
 
   if (callback) {
     try {
-      this.validateName(name);
-      // if name is not valid, this line won't be called.
+      // normalise throws an error if it detects an invalid character
+      const normalisedName = normalise(name);
+      this.checkLength(name);
+      const hash = this.sha3(normalisedName);
+      // Insert the hash we're interested in to the randomly generated array
+      randomHashes[j] = hash;
+      // if either normalise or checkLength throw an error, this line won't be called.
       this.contract.startAuctions(randomHashes, params, callback);
     } catch (e) {
       callback(e, null);
     }
   } else {
-    this.validateName(name);
+    const normalisedName = normalise(name);
+    this.checkLength(name);
+
+    const hash = this.sha3(normalisedName);
+    // Insert the hash we're interested in to the randomly generated array
+    randomHashes[j] = hash;
     return this.contract.startAuctions(randomHashes, params);
   }
 };
@@ -368,18 +349,19 @@ Registrar.NoDeposit = Error('You must specify a deposit amount greater than the 
  * required to unseal the bid.
  */
 Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret) {
+  this.checkLength(name);
   const sha3 = this.sha3;
-  const cleanedName = cleanName(name);
+  const normalisedName = normalise(name);
   const bidObject = {
-    name: cleanedName,
+    name: normalisedName,
     // TODO: consider renaming any hashes to  `this.node`
-    hash: sha3(cleanedName),
+    hash: sha3(normalisedName),
     value,
     owner,
     secret,
     hexSecret: sha3(secret),
     // Use the bid properties to get the shaBid value from the contract
-    shaBid: this.contract.shaBid(sha3(cleanedName), owner, value, sha3(secret))
+    shaBid: this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret))
   };
   return bidObject;
 };
@@ -496,8 +478,8 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
  * @returns {string} The transaction ID if callback is not supplied.
  */
 Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}, callback = null) {
-  const cleanedName = cleanName(name);
-  const hash = this.sha3(cleanedName);
+  const normalisedName = normalise(name);
+  const hash = this.sha3(normalisedName);
 
   if (callback) {
     this.contract.finalizeAuction(hash, params, callback);

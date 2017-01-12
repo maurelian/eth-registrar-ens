@@ -122,8 +122,9 @@ describe('Registrar', () => {
     });
 
     it('Should return an error when the name contains special characters', (done) => {
-      registrar.openAuction('fooøøôôóOOOo', { from: accounts[0] }, (err, txid) => {
-        assert.equal(err, Registrar.SpecialCharacters);
+      registrar.openAuction('foo{}øøôôóOOOo', { from: accounts[0] }, (err, txid) => {
+        assert.equal(err, ENS.InvalidName);
+        // assert.equal(err, Registrar.SpecialCharacters);
         assert.equal(txid, null);
         done();
       });
