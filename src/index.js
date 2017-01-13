@@ -122,7 +122,7 @@ Registrar.SpecialCharacters = Error(
 );
 
 Registrar.prototype.validateName = function validateName(name) {
-  if (name.length <= this.minLength) {
+  if (name.length < this.minLength) {
     throw Registrar.TooShort;
   }
   if (name !== cleanName(name)) {
