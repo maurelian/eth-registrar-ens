@@ -99,7 +99,12 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7) {
   this.ens = ens;
   this.tld = tld;
   this.minLength = minLength;
-  this.address = this.ens.owner(this.tld);
+  let registrarAddress;
+  this.ens.owner(this.tld, function (err, result) {
+    if (err) console.log(err);
+    registrarAddress = result;
+  });
+  this.address = registrarAddress;
   this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
   this.rootNode = namehash(this.tld);
 }
@@ -361,8 +366,13 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret)
     secret,
     hexSecret: sha3(secret),
     // Use the bid properties to get the shaBid value from the contract
-    shaBid: this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret))
   };
+  let thisShaBid;
+  this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret), function (err, result) {
+    if (err) console.log(err);
+    thisShaBid = result;
+  });
+  bidObject.shaBid = thisShaBid;
   return bidObject;
 };
 
