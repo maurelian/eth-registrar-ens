@@ -3,7 +3,7 @@ const ENS = require('ethereum-ens');
 
 const assert = require('assert');
 const fs = require('fs');
-const solc = require('solc');
+const solc = require('solc'); // eslint-disable-line
 const TestRPC = require('ethereumjs-testrpc'); // eslint-disable-line
 const Web3 = require('web3');
 
@@ -25,7 +25,7 @@ let capitalizedBid = null;
 
 describe('Registrar', () => {
   before(function (done) { // eslint-disable-line
-    this.timeout(20000);
+    this.timeout(30000);
     // Deploy the ENS registry and registrar
     web3.eth.getAccounts((err, accts) => {
       if (err) {
