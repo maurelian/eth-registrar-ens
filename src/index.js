@@ -82,7 +82,7 @@ const normalise = ENS.prototype.normalise;
  * @param {string} tld The top level domain
  * @param {string} ens The address of the ENS instance
  */
-function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7) {
+function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callback) {
   this.web3 = web3;
 
   // prior to version 0.16, web3.sha3 didn't prepend '0x', to support both options
@@ -99,9 +99,16 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7) {
   this.ens = ens;
   this.tld = tld;
   this.minLength = minLength;
-  this.address = this.ens.owner(this.tld);
-  this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(this.address);
   this.rootNode = namehash(this.tld);
+  ens.owner(this.tld, (err, result) => {
+    if (err) {
+      callback(err, null);
+    } else {
+      this.address = result;
+      this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(result);
+      callback(null, result);
+    }
+  });
 }
 
 Registrar.TooShort = Error('Name is too short');
@@ -112,6 +119,8 @@ Registrar.prototype.checkLength = function checkLength(name) {
   }
 };
 
+// An array corresponding to the registrar contract's Mode enum object
+const enumMode = ['open', 'auction', 'owned', 'forbidden', 'reveal'];
 
 /**
  * Constructs a new Entry object corresponding to a name.
@@ -126,58 +135,17 @@ Registrar.prototype.checkLength = function checkLength(name) {
  * @param {number} value
  * @param {number} highestBid
  */
-function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
+function Entry(name, hash, status, mode, deed, registrationDate, value, highestBid) {
   // TODO: improve Entry constructor so that unknown names can be handled via getEntry
+  // TODO: clarify when to use mode vs. status
   this.name = name;
   this.hash = hash;
   this.status = status;
+  this.mode = mode;
   this.deed = deed;
   this.registrationDate = registrationDate;
   this.value = value;
   this.highestBid = highestBid;
-
-  // Check the auction mode
-
-  let mode = '';
-
-  // TODO: make the minimum length dynamic to match the Registrar constructor
-  if (name.length < 7) {
-    // If name is short, check if it has been bought
-    if (this.status === 0) {
-      // TODO: Calling this 'invalid' is confusing, it's not the same as 'invalidated'
-      mode = 'invalid';
-    } else {
-      mode = 'can-invalidate';
-    }
-  } else {
-    // If name is of valid length
-    if (this.status === 0) { //eslint-disable-line
-      // Not an auction yet
-      mode = 'open';
-    } else if (this.status === 1) {
-      const now = new Date();
-      const registration = new Date(this.registrationDate * 1000);
-      const hours = 60 * 60 * 1000;
-
-      if ((registration - now) > 24 * hours) {
-        // Bids are open
-        mode = 'auction';
-      } else if (now < registration && (registration - now) < 24 * hours) {
-        // reveal time!
-        mode = 'reveal';
-      } else if (now > registration && (now - registration) < 24 * hours) {
-        // finalize now
-        mode = 'finalize';
-      } else {
-        // finalize now but can open?
-        mode = 'finalize-open';
-      }
-    } else if (this.status === 2) {
-      mode = 'owned';
-    }
-  }
-
-  this.mode = mode;
 }
 
 /**
@@ -201,10 +169,26 @@ function Deed(address, balance, creationDate, owner) {
  * @param {string} address The address of the deed
  * @return {object} A deed object
  */
-Registrar.prototype.getDeed = function getDeed(address) {
-  const d = this.web3.eth.contract(interfaces.deedInterface).at(address);
-  const balance = this.web3.eth.getBalance(address);
-  return new Deed(d.address, balance, d.creationDate(), d.owner());
+Registrar.prototype.getDeed = function getDeed(address, callback) {
+  const deedContract = this.web3.eth.contract(interfaces.deedInterface).at(address);
+  this.web3.eth.getBalance(address, (err, balance) => {
+    if (callback) {
+      const deed = new Deed(
+        deedContract.address,
+        balance,
+        deedContract.creationDate,
+        deedContract.owner
+      );
+      callback(null, deed);
+    } else {
+      return new Deed(
+        deedContract.address,
+        balance,
+        deedContract.creationDate,
+        deedContract.owner
+      );
+    }
+  });
 };
 
 
@@ -244,33 +228,41 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
     name = normalise(input);
     hash = this.sha3(name);
   }
+  const registrarContract = this.contract;
 
-  const e = this.contract.entries(hash);
-  let deed;
+  registrarContract.entries(hash, (entryErr, entry) => {
+    const entryObject = new Entry(
+      name,
+      hash,
+      entry[0].toNumber(), // status
+      enumMode[entry[0].toNumber()], // mode
+      null, // deed
+      entry[2].toNumber(), // date
+      entry[3].toNumber(), // value
+      entry[4].toNumber()// highestBid
+    );
 
-  if (e[1] !== '0x0000000000000000000000000000000000000000') {
-    //
-    deed = this.getDeed(e[1]);
-  } else {
-    // construct a deed object with all props null except for the 0 address
-    deed = new Deed(e[1], null, null, null);
-  }
-
-  const entry = new Entry(
-    name,
-    hash,
-    e[0].toNumber(),
-    deed,
-    e[2].toNumber(),
-    e[3].toNumber(),
-    e[4].toNumber()
-  );
-
-  if (callback) {
-    callback(null, entry);
-  } else {
-    return entry;
-  }
+    if (entry[1] !== '0x0000000000000000000000000000000000000000') {
+      // the entry has a deed address, get the details and add to the entry object
+      this.getDeed(entry[1], (err, deed) => {
+        if (err) callback(err);
+        entryObject.deed = deed;
+        if (callback) {
+          callback(null, entryObject);
+        } else {
+          return entryObject;
+        }
+      });
+    } else {
+      // there is no deed address.
+      entryObject.deed = new Deed(entry[1], null, null, null);
+      if (callback) {
+        callback(null, entryObject);
+      } else {
+        return entryObject;
+      }
+    }
+  });
 };
 
 /**
@@ -298,16 +290,16 @@ Registrar.prototype.openAuction = function openAuction(name, params = {}, callba
   }
   // Randomly select an array entry to replace with the name we want
   const j = Math.floor(Math.random() * 10);
-
   if (callback) {
     try {
-      // normalise throws an error if it detects an invalid character
       const normalisedName = normalise(name);
-      this.checkLength(name);
+      this.checkLength(normalisedName);
       const hash = this.sha3(normalisedName);
-      // Insert the hash we're interested in to the randomly generated array
+
+      // Insert the hash we want
       randomHashes[j] = hash;
-      // if either normalise or checkLength throw an error, this line won't be called.
+
+      // this won't be called if either normalise or checkLength throw an error
       this.contract.startAuctions(randomHashes, params, callback);
     } catch (e) {
       callback(e, null);
@@ -317,6 +309,7 @@ Registrar.prototype.openAuction = function openAuction(name, params = {}, callba
     this.checkLength(name);
 
     const hash = this.sha3(normalisedName);
+
     // Insert the hash we're interested in to the randomly generated array
     randomHashes[j] = hash;
     return this.contract.startAuctions(randomHashes, params);
@@ -348,7 +341,7 @@ Registrar.NoDeposit = Error('You must specify a deposit amount greater than the 
  * @returns {object} A bid object containing the parameters of the bid
  * required to unseal the bid.
  */
-Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret) {
+Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret, callback) {
   this.checkLength(name);
   const sha3 = this.sha3;
   const normalisedName = normalise(name);
@@ -361,9 +354,22 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret)
     secret,
     hexSecret: sha3(secret),
     // Use the bid properties to get the shaBid value from the contract
-    shaBid: this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret))
   };
-  return bidObject;
+  if (callback) {
+    this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret),
+      (err, result) => {
+        if (err) {
+          callback(err, null);
+        } else {
+          bidObject.shaBid = result;
+          callback(err, bidObject);
+        }
+      }
+    );
+  } else {
+    bidObject.shaBid = this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret));
+    return bidObject;
+  }
 };
 
 
@@ -389,6 +395,7 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
     if (params.value < bid.value) {
       callback(Registrar.NoDeposit, null);
     } else {
+      // FIX: says I'm making a synchronous request here?
       this.contract.newBid(bid.shaBid, params, callback);
     }
   } else {

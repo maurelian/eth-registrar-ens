@@ -11,6 +11,7 @@ module.exports = {
         "comma-dangle": "off",
         // consistent-return prevents passing a callback to our methods
         "consistent-return": "off", 
+        "import/no-extraneous-dependencies": "off",
         "no-lonely-if": "warn",
         "no-plusplus": ["warn", {"allowForLoopAfterthoughts": true}],
         "require-jsdoc": ["error", {
