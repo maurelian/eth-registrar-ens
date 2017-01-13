@@ -3,13 +3,13 @@ const ENS = require('ethereum-ens');
 
 const assert = require('assert');
 const fs = require('fs');
-const solc = require('solc'); // eslint-disable-line
+const solc = require('solc');
 const TestRPC = require('ethereumjs-testrpc'); // eslint-disable-line
 const Web3 = require('web3');
 
 const web3 = new Web3();
-
 // Unfortunately invoking TestRPC here doesn't support synchronous calls
+// so we need to run it in a terminal
 // web3.setProvider(TestRPC.provider());
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
@@ -86,14 +86,14 @@ describe('Registrar', () => {
     highBid = registrar.bidFactory(
         'foobarbaz',
         // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        accounts[0],
         web3.toWei(2, 'ether'), // value
         'secret'
     );
     lowBid = registrar.bidFactory(
         'foobarbaz',
         // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        accounts[0],
         web3.toWei(2, 'ether'), // value
         'secret'
     );
@@ -101,19 +101,14 @@ describe('Registrar', () => {
     capitalizedBid = registrar.bidFactory(
         'FOObarBAZ',
         // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        accounts[0],
         web3.toWei(2, 'ether'), // value
         'secret'
     );
   });
 
   describe('#bidFactory()', () => {
-    it('Should generate the correct 32 byte shaBid string', () => {
-      const shaBid = '0x77d4ed2ca7aae73b484e5a9a6e3306c5cbecfbca958381552b8c646250495ae3';
-      assert.equal(highBid.shaBid, shaBid);
-    });
-
-    it('Should return the same bid string for the same bid on an identical Nameprep name', () => {
+    it('Should return the same bid string for the same bid on an identically normalised name', () => {
       assert.equal(highBid.shaBid, capitalizedBid.shaBid);
     });
   });
@@ -236,13 +231,22 @@ describe('Registrar', () => {
 
   describe('#unsealBid()', () => {
     it('Should delete the sealedBid Deed', (done) => {
-      registrar.unsealBid(highBid, { from: accounts[1], gas: 4700000 }, (err, result) => {
-        assert.equal(err, null);
-        assert.ok(result !== null);
-        registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
-          assert.equal(sealedBidErr, null);
-          assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
-          done();
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        // 86400 seconds per day, first auctions end 2 weeks after registrar contract is deployed
+        // The reveal period is the last 24 hours of the auction.
+        params: [86400 * ((7 * 2) - 1)],
+        id: new Date().getTime()
+      }, () => {
+        registrar.unsealBid(highBid, { from: accounts[1], gas: 4700000 }, (err, result) => {
+          assert.equal(err, null);
+          assert.ok(result !== null);
+          registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
+            assert.equal(sealedBidErr, null);
+            assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
+            done();
+          });
         });
       });
     });
@@ -271,7 +275,7 @@ describe('Registrar', () => {
 
   describe('#finalizeAuction()', () => {
     it('Should throw an error if called too soon', (done) => {
-      registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
+      registrar.finalizeAuction('foobarbaz', { from: accounts[0], gas: 4700000 },
         (finalizeAuctionErr, finalizeAuctionResult) => {
           assert.ok(finalizeAuctionErr.toString().indexOf('invalid JUMP') !== -1, finalizeAuctionErr);
           assert.equal(finalizeAuctionResult, null);
@@ -285,10 +289,11 @@ describe('Registrar', () => {
         jsonrpc: '2.0',
         method: 'evm_increaseTime',
         // 86400 seconds per day, first auctions end 4 weeks after registrar contract is deployed
-        params: [86400 * 7 * 4],
+        // In the last test we jumped ahead to the final day of the contract, so one more day
+        params: [86400],
         id: new Date().getTime()
       }, () => {
-        registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
+        registrar.finalizeAuction('foobarbaz', { from: accounts[0], gas: 4700000 },
           (finalizeAuctionErr, finalizeAuctionResult) => {
             assert.equal(finalizeAuctionErr, null);
             assert.ok(finalizeAuctionResult != null);

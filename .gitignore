@@ -1,3 +1,5 @@
 node_modules
 lib
-src/test/contracts.json # this is generated durings tests if not present
+
+# this is generated durings tests if not present
+src/test/contracts.json 
