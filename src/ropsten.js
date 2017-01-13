@@ -6,7 +6,7 @@
     # In one terminal:
     $ geth -testnet --rpc
     # After the above has synced, in another terminal:
-    $ node ropsten
+    $ node src/ropsten
     node>
     node> registrar.getEntry('insurance')
     { name: 'insurance',
@@ -30,13 +30,14 @@ const repl = require('repl');
 
 const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
-// TODO: make this into a proper repl
-web3.eth.getAccounts((err, accts) => { // eslint-disable-line
-  if (err) { console.log(err); } // eslint-disable-line
-  else {
+
+web3.eth.getAccounts((err, accts) => {
+  if (err) {
+    console.log(err);  // eslint-disable-line
+  } else {
     const registrar = new Registrar(web3);
-    const ens = registrar.ens; // eslint-disable-line
-    let r = repl.start('node> ');
+    const ens = registrar.ens;
+    const r = repl.start('node> ');
     r.context.registrar = registrar;
     r.context.ens = ens;
     r.context.web3 = web3;
