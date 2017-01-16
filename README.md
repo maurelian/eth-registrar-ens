@@ -83,7 +83,8 @@ this has the same parameters as web3.
 -   `minLength` **integer?= 7** The minimum length of a name require by the registrar.
 -   `tld` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= 'eth'** The top level domain
 -   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= new ENS(web3)** The address of the ENS instance
--   `callback`  
+-   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
+           function executes asynchronously.
 
 **Meta**
 
@@ -99,7 +100,8 @@ This method is used in the getEntry method, but also available on its own.
 **Parameters**
 
 -   `address` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the deed
--   `callback`  
+-   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
+           function executes asynchronously.
 
 Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A deed object
 
