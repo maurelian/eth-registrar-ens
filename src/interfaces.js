@@ -1,7 +1,5 @@
 /* eslint-disable*/
-const fs = require('fs');
-
-const interfaces = JSON.parse(fs.readFileSync('src/interfaces.json'));
+const interfaces = require('./interfaces.json');
 
 module.exports = {
     deedInterface: interfaces.deedInterface,

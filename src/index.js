@@ -81,6 +81,8 @@ const normalise = ENS.prototype.normalise;
  * @param {integer} minLength The minimum length of a name require by the registrar.
  * @param {string} tld The top level domain
  * @param {string} ens The address of the ENS instance
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
  */
 function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callback) {
   this.web3 = web3;
@@ -167,6 +169,8 @@ function Deed(address, balance, creationDate, owner) {
  * @memberOf Registrar
  *
  * @param {string} address The address of the deed
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
  * @return {object} A deed object
  */
 Registrar.prototype.getDeed = function getDeed(address, callback) {
@@ -239,7 +243,7 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
       null, // deed
       entry[2].toNumber(), // date
       entry[3].toNumber(), // value
-      entry[4].toNumber()// highestBid
+      entry[4].toNumber() // highestBid
     );
 
     if (entry[1] !== '0x0000000000000000000000000000000000000000') {

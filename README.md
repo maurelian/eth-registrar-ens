@@ -33,8 +33,8 @@ defaults to the public ENS address, so all that is needed to construct it is
 
     var registrar = new Registrar(web3);
 
-If you are working with another instance of the ENS, you will need to 
-instantiate your own 'ethereum-ens' object with the correct address. You 
+If you are working with another instance of the ENS, you will need to
+instantiate your own 'ethereum-ens' object with the correct address. You
 can also specify a custom TLD, and minimum character length for valid names.
 
     var ENS = require('ethereum-ens');
@@ -83,6 +83,7 @@ this has the same parameters as web3.
 -   `minLength` **integer?= 7** The minimum length of a name require by the registrar.
 -   `tld` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= 'eth'** The top level domain
 -   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= new ENS(web3)** The address of the ENS instance
+-   `callback`  
 
 **Meta**
 
@@ -91,13 +92,14 @@ this has the same parameters as web3.
 
 ### getDeed
 
-**Get the properties of a Deed at a given address.** 
+**Get the properties of a Deed at a given address.**
 
 This method is used in the getEntry method, but also available on its own.
 
 **Parameters**
 
 -   `address` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the deed
+-   `callback`  
 
 Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A deed object
 
@@ -136,8 +138,8 @@ Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 **Open an auction for the desired name**
 
-This method also opens auctions on several other randomly 
-generated hashes, helping to prevent other bidders from guessing which 
+This method also opens auctions on several other randomly
+generated hashes, helping to prevent other bidders from guessing which
 names you are interested in.
 
 **Parameters**
@@ -162,7 +164,7 @@ Returns **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 The properties of the Bid object correspond to the
 inputs of the registrar contract's 'shaBid' function.
-When a bid is submitted, these values should be saved so that they can be 
+When a bid is submitted, these values should be saved so that they can be
 used to reveal the bid params later.
 
 **Parameters**
@@ -171,6 +173,7 @@ used to reveal the bid params later.
 -   `owner` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** An owner address
 -   `value` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The value of your bid in wei
 -   `secret` **secret** An optional random value
+-   `callback`  
 
 **Examples**
 
@@ -183,7 +186,7 @@ myBid = registrar.bidFactory(
 );
 ```
 
-Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A bid object containing the parameters of the bid 
+Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A bid object containing the parameters of the bid
 required to unseal the bid.
 
 ### submitBid
@@ -193,7 +196,7 @@ required to unseal the bid.
 **Parameters**
 
 -   `bid` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A Bid object.
--   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3. The 
+-   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3. The
     value sent must be at least as much as the bid value.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
            function executes asynchronously.
