@@ -38,7 +38,6 @@ web3.eth.getAccounts((err, accts) => { // eslint-disable-line
     const registrar = new Registrar(
       web3, new ENS(web3), 'eth', 7,
         (registrarErr, registrarResult) => { // eslint-disable-line
-          debugger;
           const ens = registrar.ens; // eslint-disable-line
           console.log(`connecting to: ` + // eslint-disable-line
             `\n  * the ENS registry at ${ens.registry.address} ` + // eslint-disable-line

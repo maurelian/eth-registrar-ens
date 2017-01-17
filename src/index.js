@@ -120,6 +120,56 @@ Registrar.prototype.checkLength = function checkLength(name) {
 };
 
 
+Registrar.prototype.getMode = function getMode(name, status, registrationDate, deed){
+ 
+     // Check the auction mode
+    let mode ='';
+
+    if (name.length < this.minLength) {
+      if (deed == '0x0000000000000000000000000000000000000000') {
+        // name is too short
+        mode = 'forbidden';
+      } else {
+        // can be invalidated
+        mode = 'forbidden-can-invalidate'
+      }
+    } else {
+      // If name is of valid length
+      if (status == 0) {
+        // Not an auction yet
+        mode = 'open';
+      } else if (status == 1) {
+
+        let now = new Date();
+        let registration = new Date(registrationDate*1000);
+        let hours = 60*60*1000;
+
+        if ((registration - now) > 24 * hours ) {
+          // Bids are open
+          mode = 'auction';
+        } else if (now < registration && (registration - now) < 24 * hours ) {
+          // reveal time!
+          mode = 'reveal';
+        } else if (now > registration) {
+          if (deed == '0x0000000000000000000000000000000000000000') {
+            // can be opened again
+            mode = 'open';
+          } else {
+            // needs to be finalized
+            mode = 'finalize'
+          }
+        } 
+      } else if (status == 2) {
+        mode = 'owned';
+      } 
+    } 
+
+    return mode;
+}
+
+// An array corresponding to the registrar contract's Mode enum object
+const enumMode = ['open', 'auction', 'owned', 'forbidden', 'reveal'];
+
 /**
  * Constructs a new Entry object corresponding to a name.
  *
@@ -133,20 +183,18 @@ Registrar.prototype.checkLength = function checkLength(name) {
  * @param {number} value
  * @param {number} highestBid
  */
-function Entry(name, hash, status, deed, registrationDate, value, highestBid) {
+function Entry(name, hash, status, mode, deed, registrationDate, value, highestBid) {
   // TODO: improve Entry constructor so that unknown names can be handled via getEntry
   this.name = name;
   this.hash = hash;
   this.status = status;
+  this.mode = mode;
   this.deed = deed;
   this.registrationDate = registrationDate;
   this.value = value;
   this.highestBid = highestBid;
 
   // Check the auction mode
-
-  let mode = '';
-
   // TODO: make the minimum length dynamic to match the Registrar constructor
   if (name.length < 7) {
     // If name is short, check if it has been bought
@@ -275,6 +323,7 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
       name,
       hash,
       entry[0].toNumber(), // status
+      this.getMode(name, entry[0].toNumber(), entry[2].toNumber(), entry[1]), // Mode
       null, // deed
       entry[2].toNumber(), // date
       entry[3].toNumber(), // value
