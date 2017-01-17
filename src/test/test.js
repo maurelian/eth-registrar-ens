@@ -9,9 +9,8 @@ const Web3 = require('web3');
 
 const web3 = new Web3();
 
-// Unfortunately invoking TestRPC here doesn't support synchronous calls
-// web3.setProvider(TestRPC.provider());
-web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+web3.setProvider(TestRPC.provider());
+// web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
 let accounts = null;
 let ens = null;
@@ -81,18 +80,7 @@ describe('Registrar', () => {
 
   before((done) => {
     // Declare various bids for testing in advance
-<<<<<<< HEAD
-    highBid = registrar.bidFactory(
-        'foobarbaz',
-        // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
-        web3.toWei(2, 'ether'), // value
-        'secret'
-    );
-    lowBid = registrar.bidFactory(
-=======
     registrar.bidFactory(
->>>>>>> aed6f86... Refactor: make async only
         'foobarbaz',
         // just a randomly generated ethereum address
         '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
@@ -118,25 +106,6 @@ describe('Registrar', () => {
         }
     );
 
-<<<<<<< HEAD
-    capitalizedBid = registrar.bidFactory(
-        'FOObarBAZ',
-        // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
-        web3.toWei(2, 'ether'), // value
-        'secret'
-    );
-  });
-
-  describe('#bidFactory()', () => {
-    it('Should generate the correct 32 byte shaBid string', () => {
-      const shaBid = '0x77d4ed2ca7aae73b484e5a9a6e3306c5cbecfbca958381552b8c646250495ae3';
-      assert.equal(highBid.shaBid, shaBid);
-    });
-
-    it('Should return the same bid string for the same bid on an identical Nameprep name', () => {
-      assert.equal(highBid.shaBid, capitalizedBid.shaBid);
-=======
     // capitalizedBid = registrar.bidFactory(
     //     'FOObarBAZ',
     //     // just a randomly generated ethereum address
@@ -150,7 +119,6 @@ describe('Registrar', () => {
     it('should produce valid hashes', () => {
       assert.ok(typeof highBid.shaBid, 'string');
       assert.ok(highBid.shaBid.indexOf('0x') !== -1, highBid.shaBid);
->>>>>>> aed6f86... Refactor: make async only
     });
   });
 
@@ -287,15 +255,6 @@ describe('Registrar', () => {
 
   describe('#unsealBid()', () => {
     it('Should delete the sealedBid Deed', (done) => {
-<<<<<<< HEAD
-      registrar.unsealBid(highBid, { from: accounts[1], gas: 4700000 }, (err, result) => {
-        assert.equal(err, null);
-        assert.ok(result !== null);
-        registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
-          assert.equal(sealedBidErr, null);
-          assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
-          done();
-=======
       web3.currentProvider.sendAsync({
         jsonrpc: '2.0',
         method: 'evm_increaseTime',
@@ -312,7 +271,6 @@ describe('Registrar', () => {
             assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
             done();
           });
->>>>>>> aed6f86... Refactor: make async only
         });
       });
     });

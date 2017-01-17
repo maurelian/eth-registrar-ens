@@ -25,21 +25,30 @@
 */
 
 const Registrar = require('./index.js');
+const ENS = require('ethereum-ens');
 const Web3 = require('web3');
 const repl = require('repl');
 
 const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
-// TODO: make this into a proper repl
 web3.eth.getAccounts((err, accts) => { // eslint-disable-line
-  if (err) { console.log(err); } // eslint-disable-line
-  else {
-    const registrar = new Registrar(web3);
-    const ens = registrar.ens; // eslint-disable-line
-    let r = repl.start('node> ');
-    r.context.registrar = registrar;
-    r.context.ens = ens;
-    r.context.web3 = web3;
-    r.context.accts = accts;
+  if (err) {
+    console.log(err); // eslint-disable-line
+  } else {
+    const registrar = new Registrar(
+      web3, new ENS(web3), 'eth', 7,
+        (registrarErr, registrarResult) => { // eslint-disable-line
+          debugger;
+          const ens = registrar.ens; // eslint-disable-line
+          console.log(`connecting to: ` + // eslint-disable-line
+            `\n  * the ENS registry at ${ens.registry.address} ` + // eslint-disable-line
+            `\n  * the "${registrar.tld}" registrar at ${registrar.address}`);
+          const r = repl.start('node> ');
+          r.context.registrar = registrar;
+          r.context.ens = ens;
+          r.context.web3 = web3;
+          r.context.accts = accts;
+        }
+    );
   }
 });

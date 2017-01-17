@@ -214,7 +214,7 @@ Registrar.prototype.getDeed = function getDeed(address, callback) {
     if (callback) {
       const deed = new Deed(
         deedContract.address,
-        balance,
+        balance.toNumber(),
         deedContract.creationDate,
         deedContract.owner
       );
@@ -222,7 +222,7 @@ Registrar.prototype.getDeed = function getDeed(address, callback) {
     } else {
       return new Deed(
         deedContract.address,
-        balance,
+        balance.toNumber(),
         deedContract.creationDate,
         deedContract.owner
       );
@@ -268,32 +268,40 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
     hash = this.sha3(name);
   }
 
-  const e = this.contract.entries(hash);
-  let deed;
+  const registrarContract = this.contract;
 
-  if (e[1] !== '0x0000000000000000000000000000000000000000') {
-    //
-    deed = this.getDeed(e[1]);
-  } else {
-    // construct a deed object with all props null except for the 0 address
-    deed = new Deed(e[1], null, null, null);
-  }
-
-  const entry = new Entry(
-    name,
-    hash,
-    e[0].toNumber(),
-    deed,
-    e[2].toNumber(),
-    e[3].toNumber(),
-    e[4].toNumber()
-  );
-
-  if (callback) {
-    callback(null, entry);
-  } else {
-    return entry;
-  }
+  registrarContract.entries(hash, (entryErr, entry) => {
+    const entryObject = new Entry(
+      name,
+      hash,
+      entry[0].toNumber(), // status
+      null, // deed
+      entry[2].toNumber(), // date
+      entry[3].toNumber(), // value
+      entry[4].toNumber() // highestBid
+    );
+    if (entry[1] !== '0x0000000000000000000000000000000000000000') {
+      // the entry has a deed address, get the details and add to the entry object
+      this.getDeed(entry[1], (err, deed) => {
+        if (err) callback(err);
+        debugger;
+        entryObject.deed = deed;
+        if (callback) {
+          callback(null, entryObject);
+        } else {
+          return entryObject;
+        }
+      });
+    } else {
+      // there is no deed address.
+      entryObject.deed = new Deed(entry[1], null, null, null);
+      if (callback) {
+        callback(null, entryObject);
+      } else {
+        return entryObject;
+      }
+    }
+  });
 };
 
 /**
