@@ -214,22 +214,22 @@ function Deed(address, balance, creationDate, owner) {
 Registrar.prototype.getDeed = function getDeed(address, callback) {
   const deedContract = this.web3.eth.contract(interfaces.deedInterface).at(address);
   this.web3.eth.getBalance(address, (err, balance) => {
-    if (callback) {
-      const deed = new Deed(
-        deedContract.address,
-        balance.toNumber(),
-        deedContract.creationDate,
-        deedContract.owner
-      );
-      callback(null, deed);
-    } else {
-      return new Deed(
-        deedContract.address,
-        balance.toNumber(),
-        deedContract.creationDate,
-        deedContract.owner
-      );
-    }
+    deedContract.creationDate((creationDateErr, creationDateResult) => {
+      deedContract.owner((ownerErr, ownerResult) => {
+        const deed = new Deed(
+          deedContract.address,
+          balance.toNumber(),
+          creationDateResult.toNumber(),
+          ownerResult
+        );
+        debugger;
+        if (callback) {
+          callback(null, deed);
+        } else {
+          return deed;
+        }
+      });
+    });
   });
 };
 

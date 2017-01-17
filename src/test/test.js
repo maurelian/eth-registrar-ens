@@ -278,6 +278,8 @@ describe('Registrar', () => {
       registrar.getEntry('foobarbaz', (err, result) => {
         assert.equal(result.name, 'foobarbaz');
         assert.ok(result.deed.address !== '0x0000000000000000000000000000000000000000');
+        const now = new Date();
+        assert.ok(+now - (result.deed.creationDate * 1000) > 0, result.deed.creationDate);
         assert.equal(Number(result.highestBid), highBid.value);
         done();
       });
