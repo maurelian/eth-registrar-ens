@@ -1,2 +1,6 @@
 node_modules
 lib
+
+# this is generated during tests if not present
+src/test/contracts.json
+

@@ -1,4 +1,4 @@
-const Registrar = require('../../src/index.js');
+const Registrar = require('../index.js');
 const ENS = require('ethereum-ens');
 
 const assert = require('assert');
@@ -20,7 +20,6 @@ let registrar = null;
 let highBid = null;
 // TODO: test submitting and revealing low bid
 let lowBid = null;   // eslint-disable-line
-let capitalizedBid = null;
 
 
 describe('Registrar', () => {
@@ -66,8 +65,13 @@ describe('Registrar', () => {
             contract.registrarInfo.call((registrarInfoErr, registrarInfoValue) => {
               assert.equal(registrarInfoErr, null, registrarInfoErr);
               assert.ok(registrarInfoValue !== null);
-              registrar = new Registrar(web3, ens);
-              done();
+              registrar = new Registrar(web3, ens, 'eth', 7,
+                (constructRegistrarErr, constructRegistrarResult) => {
+                  assert.equal(constructRegistrarErr, null, constructRegistrarErr);
+                  assert.equal(typeof constructRegistrarResult, 'string');
+                  done();
+                }
+              );
             });
           });
         }
@@ -75,8 +79,9 @@ describe('Registrar', () => {
     });
   });
 
-  before(() => {
+  before((done) => {
     // Declare various bids for testing in advance
+<<<<<<< HEAD
     highBid = registrar.bidFactory(
         'foobarbaz',
         // just a randomly generated ethereum address
@@ -85,13 +90,35 @@ describe('Registrar', () => {
         'secret'
     );
     lowBid = registrar.bidFactory(
+=======
+    registrar.bidFactory(
+>>>>>>> aed6f86... Refactor: make async only
         'foobarbaz',
         // just a randomly generated ethereum address
         '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
         web3.toWei(2, 'ether'), // value
-        'secret'
+        'secret',
+        (highBidErr, highBidObject) => {
+          assert.equal(highBidErr, null);
+          assert.equal(typeof highBidObject, 'object');
+          highBid = highBidObject;
+          registrar.bidFactory(
+              'foobarbaz',
+              // just a randomly generated ethereum address
+              accounts[0],
+              web3.toWei(1, 'ether'), // value
+              'secret',
+              (lowBidErr, lowBidObject) => {
+                assert.equal(lowBidErr, null);
+                assert.equal(typeof lowBidObject, 'object');
+                lowBid = lowBidObject;
+                done();
+              }
+          );
+        }
     );
 
+<<<<<<< HEAD
     capitalizedBid = registrar.bidFactory(
         'FOObarBAZ',
         // just a randomly generated ethereum address
@@ -109,12 +136,27 @@ describe('Registrar', () => {
 
     it('Should return the same bid string for the same bid on an identical Nameprep name', () => {
       assert.equal(highBid.shaBid, capitalizedBid.shaBid);
+=======
+    // capitalizedBid = registrar.bidFactory(
+    //     'FOObarBAZ',
+    //     // just a randomly generated ethereum address
+    //     accounts[0],
+    //     web3.toWei(2, 'ether'), // value
+    //     'secret'
+    // );
+  });
+
+  describe('#bidFactory()', () => {
+    it('should produce valid hashes', () => {
+      assert.ok(typeof highBid.shaBid, 'string');
+      assert.ok(highBid.shaBid.indexOf('0x') !== -1, highBid.shaBid);
+>>>>>>> aed6f86... Refactor: make async only
     });
   });
 
   describe('#openAuction()', () => {
     it('Should return an error when the name is too short', (done) => {
-      registrar.openAuction('foo', { from: accounts[0] }, (err, txid) => {
+      registrar.openAuction('foo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, Registrar.TooShort);
         assert.equal(txid, null);
         done();
@@ -122,9 +164,8 @@ describe('Registrar', () => {
     });
 
     it('Should return an error when the name contains special characters', (done) => {
-      registrar.openAuction('foo{}øøôôóOOOo', { from: accounts[0] }, (err, txid) => {
+      registrar.openAuction('foo{}øøôôóOOOo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, ENS.InvalidName);
-        // assert.equal(err, Registrar.SpecialCharacters);
         assert.equal(txid, null);
         done();
       });
@@ -140,7 +181,7 @@ describe('Registrar', () => {
         const hash = registrar.sha3('foobarbaz');
         registrar.contract.entries.call(hash, (entryErr, entryResult) => {
           assert.equal(entryErr, null);
-          const status = entryResult[0].toString();
+          const status = entryResult[0].toNumber();
           assert.equal(status, 1);
           done();
         });
@@ -159,36 +200,46 @@ describe('Registrar', () => {
   describe('#getEntry()', () => {
     it('Should return the correct properties of a name', (done) => {
       // a name being auctioned
-      assert.equal(registrar.getEntry('foobarbaz').status, 1);
-      // a name NOT being auctioned
-      assert.equal(registrar.getEntry('thisnameisopen').status, 0);
-      // test async too
-      registrar.getEntry('foobarbaz', (err, result) => {
-        assert.equal(result.name, 'foobarbaz');
-        assert.equal(result.status, 1);
-        assert.equal(result.deed.address, '0x0000000000000000000000000000000000000000');
-        assert.ok(result.registrationDate - new Date(), result.registrationDate);
-        assert.equal(result.value, 0);
-        assert.equal(result.highestBid, 0);
-      });
-      registrar.getEntry('thisnameisopen', (err, result) => {
-        assert.equal(result.name, 'thisnameisopen');
-        assert.equal(result.status, 0);
-        assert.equal(result.deed.address, '0x0000000000000000000000000000000000000000');
-        assert.equal(result.registrationDate, 0);
-        assert.equal(result.value, 0);
-        assert.equal(result.highestBid, 0);
-        done();
+      registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+        assert.equal(entryErr1, null);
+        assert.equal(entryResult1.name, 'foobarbaz');
+        assert.equal(entryResult1.status, 1);
+        assert.equal(entryResult1.deed.address, '0x0000000000000000000000000000000000000000');
+        assert.ok((entryResult1.registrationDate * 1000) - new Date() > 0,
+          entryResult1.registrationDate);
+        assert.equal(entryResult1.value, 0);
+        assert.equal(entryResult1.highestBid, 0);
+        // a name NOT being auctioned
+        registrar.getEntry('thisnameisopen', (entryErr2, entryResult2) => {
+          assert.equal(entryErr2, null);
+          assert.equal(entryResult2.name, 'thisnameisopen');
+          assert.equal(entryResult2.status, 0);
+          assert.equal(entryResult2.deed.address, '0x0000000000000000000000000000000000000000');
+          assert.equal(entryResult2.registrationDate, 0);
+          assert.equal(entryResult2.value, 0);
+          assert.equal(entryResult2.highestBid, 0);
+          done();
+        });
       });
     });
-    it('Nameprep should ensure the same entry is returned regardless of capitalization', () => {
-      assert.equal(registrar.getEntry('foobarbaz').hash, registrar.getEntry('FOOBarbaz').hash);
+
+    it('Normalisation should ensure the same entry is returned regardless of capitalization', (done) => {
+      registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+        assert.equal(entryErr1, null);
+        registrar.getEntry('FOOBarbaz', (entryErr2, entryResult2) => {
+          assert.equal(entryErr2, null);
+          assert.equal(entryResult1.name, entryResult2.name);
+          assert.equal(entryResult1.hash, entryResult2.hash);
+          done();
+        });
+      });
     });
   });
 
   describe('#submitBid()', () => {
     it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
-      registrar.submitBid(highBid,
+      registrar.submitBid(
+        highBid,
         { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, Registrar.NoDeposit);
@@ -203,13 +254,22 @@ describe('Registrar', () => {
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
-          registrar.contract.sealedBids.call(
-            highBid.shaBid, (sealedBidError, sealedBidResult) => {
+          registrar.contract.sealedBids(
+            highBid.shaBid,
+            (sealedBidError, sealedBidResult) => {
               assert.equal(sealedBidError, null);
-              assert.ok(sealedBidResult !== '0x0000000000000000000000000000000000000000',
-                sealedBidResult);
-              assert.equal(web3.eth.getBalance(sealedBidResult), web3.toWei(3, 'ether'));
-              done();
+              assert.ok(
+                sealedBidResult !== '0x0000000000000000000000000000000000000000',
+                sealedBidResult
+              );
+              web3.eth.getBalance(
+                sealedBidResult,
+                (sealedBidBalanceErr, sealedBidBalanceResult) => {
+                  assert.equal(sealedBidBalanceErr, null);
+                  assert.equal(sealedBidBalanceResult, web3.toWei(3, 'ether'));
+                  done();
+                }
+              );
             });
         });
     });
@@ -217,9 +277,6 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as not revealed yet', (done) => {
-      // synchronous
-      assert.equal(registrar.isBidRevealed(highBid), false);
-      // asynchronous
       registrar.isBidRevealed(highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, false);
@@ -230,6 +287,7 @@ describe('Registrar', () => {
 
   describe('#unsealBid()', () => {
     it('Should delete the sealedBid Deed', (done) => {
+<<<<<<< HEAD
       registrar.unsealBid(highBid, { from: accounts[1], gas: 4700000 }, (err, result) => {
         assert.equal(err, null);
         assert.ok(result !== null);
@@ -237,6 +295,24 @@ describe('Registrar', () => {
           assert.equal(sealedBidErr, null);
           assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
           done();
+=======
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        // 86400 seconds per day, first auctions end 2 weeks after registrar contract is deployed
+        // The reveal period is the last 24 hours of the auction.
+        params: [86400 * ((7 * 2) - 1)],
+        id: new Date().getTime()
+      }, () => {
+        registrar.unsealBid(highBid, { from: accounts[0], gas: 4700000 }, (err, result) => {
+          assert.equal(err, null);
+          assert.ok(result !== null);
+          registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
+            assert.equal(sealedBidErr, null);
+            assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
+            done();
+          });
+>>>>>>> aed6f86... Refactor: make async only
         });
       });
     });
@@ -252,9 +328,6 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as revealed', (done) => {
-      // synchronous
-      assert.equal(registrar.isBidRevealed(highBid), true);
-      // asynchronous
       registrar.isBidRevealed(highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, true);
