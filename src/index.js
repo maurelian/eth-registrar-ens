@@ -120,55 +120,50 @@ Registrar.prototype.checkLength = function checkLength(name) {
 };
 
 
-Registrar.prototype.getMode = function getMode(name, status, registrationDate, deed){
- 
-     // Check the auction mode
-    let mode ='';
+Registrar.prototype.getMode = function getMode(name, status, registrationDate, deed) {
+  // Check the auction mode
+  let mode = '';
 
-    if (name.length < this.minLength) {
-      if (deed == '0x0000000000000000000000000000000000000000') {
-        // name is too short
-        mode = 'forbidden';
-      } else {
-        // can be invalidated
-        mode = 'forbidden-can-invalidate'
-      }
+  if (name.length < this.minLength) {
+    if (deed === '0x0000000000000000000000000000000000000000') {
+      // name is too short
+      mode = 'forbidden';
     } else {
-      // If name is of valid length
-      if (status == 0) {
-        // Not an auction yet
-        mode = 'open';
-      } else if (status == 1) {
+      // can be invalidated
+      mode = 'forbidden-can-invalidate';
+    }
+  } else {
+    // If name is of valid length
+    if (status === 0) {
+      // Not an auction yet
+      mode = 'open';
+    } else if (status === 1) {
+      const now = new Date();
+      const registration = new Date(registrationDate * 1000);
+      const hours = 60 * 60 * 1000;
 
-        let now = new Date();
-        let registration = new Date(registrationDate*1000);
-        let hours = 60*60*1000;
+      if ((registration - now) > 24 * hours) {
+        // Bids are open
+        mode = 'auction';
+      } else if (now < registration && (registration - now) < 24 * hours) {
+        // reveal time!
+        mode = 'reveal';
+      } else if (now > registration) {
+        if (deed === '0x0000000000000000000000000000000000000000') {
+          // can be opened again
+          mode = 'open';
+        } else {
+          // needs to be finalized
+          mode = 'finalize';
+        }
+      }
+    } else if (status === 2) {
+      mode = 'owned';
+    }
+  }
 
-        if ((registration - now) > 24 * hours ) {
-          // Bids are open
-          mode = 'auction';
-        } else if (now < registration && (registration - now) < 24 * hours ) {
-          // reveal time!
-          mode = 'reveal';
-        } else if (now > registration) {
-          if (deed == '0x0000000000000000000000000000000000000000') {
-            // can be opened again
-            mode = 'open';
-          } else {
-            // needs to be finalized
-            mode = 'finalize'
-          }
-        } 
-      } else if (status == 2) {
-        mode = 'owned';
-      } 
-    } 
-
-    return mode;
-}
-
-// An array corresponding to the registrar contract's Mode enum object
-const enumMode = ['open', 'auction', 'owned', 'forbidden', 'reveal'];
+  return mode;
+};
 
 /**
  * Constructs a new Entry object corresponding to a name.
@@ -193,46 +188,6 @@ function Entry(name, hash, status, mode, deed, registrationDate, value, highestB
   this.registrationDate = registrationDate;
   this.value = value;
   this.highestBid = highestBid;
-
-  // Check the auction mode
-  // TODO: make the minimum length dynamic to match the Registrar constructor
-  if (name.length < 7) {
-    // If name is short, check if it has been bought
-    if (this.status === 0) {
-      // TODO: Calling this 'invalid' is confusing, it's not the same as 'invalidated'
-      mode = 'invalid';
-    } else {
-      mode = 'can-invalidate';
-    }
-  } else {
-    // If name is of valid length
-    if (this.status === 0) { //eslint-disable-line
-      // Not an auction yet
-      mode = 'open';
-    } else if (this.status === 1) {
-      const now = new Date();
-      const registration = new Date(this.registrationDate * 1000);
-      const hours = 60 * 60 * 1000;
-
-      if ((registration - now) > 24 * hours) {
-        // Bids are open
-        mode = 'auction';
-      } else if (now < registration && (registration - now) < 24 * hours) {
-        // reveal time!
-        mode = 'reveal';
-      } else if (now > registration && (now - registration) < 24 * hours) {
-        // finalize now
-        mode = 'finalize';
-      } else {
-        // finalize now but can open?
-        mode = 'finalize-open';
-      }
-    } else if (this.status === 2) {
-      mode = 'owned';
-    }
-  }
-
-  this.mode = mode;
 }
 
 /**
@@ -333,7 +288,6 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
       // the entry has a deed address, get the details and add to the entry object
       this.getDeed(entry[1], (err, deed) => {
         if (err) callback(err);
-        debugger;
         entryObject.deed = deed;
         if (callback) {
           callback(null, entryObject);
@@ -347,6 +301,7 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
       if (callback) {
         callback(null, entryObject);
       } else {
+        // FIX: this sync call does not seem to be working in the src/ropsten.js repl
         return entryObject;
       }
     }

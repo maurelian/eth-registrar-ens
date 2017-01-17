@@ -173,7 +173,6 @@ describe('Registrar', () => {
         assert.equal(entryResult1.name, 'foobarbaz');
         assert.equal(entryResult1.status, 1);
         assert.equal(entryResult1.deed.address, '0x0000000000000000000000000000000000000000');
-        debugger;
         assert.ok((entryResult1.registrationDate * 1000) - new Date() > 0,
           entryResult1.registrationDate);
         assert.equal(entryResult1.value, 0);
