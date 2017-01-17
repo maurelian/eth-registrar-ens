@@ -16,56 +16,31 @@ to the [Auction Registrar][docs], which governs the `.eth` namespace.
 The registrar specification is [here][eip162], and the mechanics of the
 auction are also outlined [here][mediumpost]
 
-#### Example usage:
+##### Example usage:
 
-    var Registrar = require('eth-registrar-ens');
-    var Web3 = require('web3');
+   var Registrar = require('eth-registrar-ens');
+   var Web3 = require('web3');
+   var ENS = require('ethereum-ens');
 
-    var web3 = new Web3();
-    web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+   var web3 = new Web3();
+   web3.setProvider(new web3.providers.HttpProvider('<http://localhost:8545'>));
 
-The public ENS is deployed on Ropsten at
-`0x112234455c3a32fd11230c42e7bccd4a84e02010`, and will be at the same
-address when deployed on the Ethereum Main net. This package imports the
-[`ethereum-ens`](https://www.npmjs.com/package/ethereum-ens) package, and
-defaults to the public ENS address, so all that is needed to construct it is
-`[web3](https://www.npmjs.com/package/web3)`. The rest is optional.
+   var ens = new ENS(web3)
 
-    var registrar = new Registrar(web3);
-
-If you are working with another instance of the ENS, you will need to 
-instantiate your own 'ethereum-ens' object with the correct address. You 
-can also specify a custom TLD, and minimum character length for valid names.
-
-    var ENS = require('ethereum-ens');
-    var yourEnsAddress = '0x0dfc1...'
-    var ens = new ENS(web3, address)
-    var registrar = new Registrar(web3, ens, 'yourTLD', 0);
-
-    var name = 'foobarbaz';
-    registrar.startAuction(name);
-
-    var owner = web3.eth.accounts[0]
-    var value = web3.toWei(1, 'ether');
-
-    // generate a sealed bid
-    var bid = registrar.shaBid(name, owner, value, 'secret');
-
-    // submit a bid, and a deposit value. The parameters of your true bid are secret.
-    var deposit = web3.toWei(2, 'ether');
-    registrar.newBid(bid, {value: deposit});
-
-    // reveal your bid during the reveal period
-    registrar.unsealBid(name, owner, value, 'secret');
-
-    // After the registration date has passed, assign ownership of the name
-    // in the ENS. In this case, the highest bidder would now own 'foobarbaz.eth'
-    registrar.finalizeAuction(name);
+   var registrar = new Registrar(web3, ens, 'eth', 7,
+     function (err, txid) {
+       console.log(txid);
+     }
+   );
 
 Throughout this module, the same optionally-asynchronous pattern as web3 is
 used: all functions that call web3 take a callback as an optional last
 argument; if supplied, the function returns nothing, but instead calls the
 callback with (err, result) when the operation completes.
+
+**Synchronous calls are useful for talking to a contract in the REPL, but
+dapp developers should use only synchronous calls in order to support light
+clients like Metamask**.
 
 Functions that create transactions also take an optional 'options' argument;
 this has the same parameters as web3.
@@ -83,6 +58,7 @@ this has the same parameters as web3.
 -   `minLength` **integer?= 7** The minimum length of a name require by the registrar.
 -   `tld` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= 'eth'** The top level domain
 -   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= new ENS(web3)** The address of the ENS instance
+-   `callback`  
 
 **Meta**
 
@@ -91,13 +67,14 @@ this has the same parameters as web3.
 
 ### getDeed
 
-**Get the properties of a Deed at a given address.** 
+**Get the properties of a Deed at a given address.**
 
 This method is used in the getEntry method, but also available on its own.
 
 **Parameters**
 
 -   `address` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the deed
+-   `callback`  
 
 Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A deed object
 
@@ -114,8 +91,9 @@ Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 **Examples**
 
 ```javascript
-registrar.getEntry('foobarbaz');
-// registrar.getEntry('insurance');
+registrar.getEntry('insurance', function (err, result) {
+  console.log(result);
+});
 // { name: 'insurance',
 //   hash: '0x73079a5cb4c7d259f40c6d0841629e689d2a95b85883b371e075ffb2f329c3e1',
 //   status: 2,
@@ -136,9 +114,11 @@ Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 **Open an auction for the desired name**
 
-This method also opens auctions on several other randomly 
-generated hashes, helping to prevent other bidders from guessing which 
+This method also opens auctions on several other randomly
+generated hashes, helping to prevent other bidders from guessing which
 names you are interested in.
+
+// TODO: Make complete this async example
 
 **Parameters**
 
@@ -151,7 +131,11 @@ names you are interested in.
 
 ```javascript
 var name = 'foobarbaz';
-registrar.openAuction(name, { from: web3.eth.accounts[0] });
+registrar.openAuction(name, { from: accounts[0], gas: 4700000 },
+  function (err, result) {
+    console.log(result);
+  }
+);
 ```
 
 Returns **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The transaction ID if callback is not supplied.
@@ -162,8 +146,9 @@ Returns **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 The properties of the Bid object correspond to the
 inputs of the registrar contract's 'shaBid' function.
-When a bid is submitted, these values should be saved so that they can be 
+When a bid is submitted, these values should be saved so that they can be
 used to reveal the bid params later.
+// TODO: Make this example async
 
 **Parameters**
 
@@ -171,6 +156,7 @@ used to reveal the bid params later.
 -   `owner` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** An owner address
 -   `value` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The value of your bid in wei
 -   `secret` **secret** An optional random value
+-   `callback`  
 
 **Examples**
 
@@ -183,7 +169,7 @@ myBid = registrar.bidFactory(
 );
 ```
 
-Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A bid object containing the parameters of the bid 
+Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A bid object containing the parameters of the bid
 required to unseal the bid.
 
 ### submitBid
@@ -193,7 +179,7 @@ required to unseal the bid.
 **Parameters**
 
 -   `bid` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A Bid object.
--   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3. The 
+-   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3. The
     value sent must be at least as much as the bid value.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
            function executes asynchronously.
@@ -201,6 +187,7 @@ required to unseal the bid.
 **Examples**
 
 ```javascript
+// TODO: Make this example async
 registrar.submitBid(highBid,
      { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 }
  );
@@ -221,6 +208,8 @@ between your deposit and bid value will be returned to you, and the
 previous highest bidder will have their funds returned. If you are not the
 highest bidder, all your funds will be returned. Returns are sent to the
 owner address listed on the bid.
+
+// TODO: Make this example async
 
 **Parameters**
 
@@ -243,6 +232,7 @@ Returns **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 Returns a boolean indicating if a bid object, as generated by bidFactory,
 is revealed or not.
+// TODO: Make this example async
 
 **Parameters**
 
@@ -264,6 +254,8 @@ Returns **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refe
 
 After the registration date has passed, calling finalizeAuction
 will set the winner as the owner of the corresponding ENS subnode.
+
+// TODO: Make this example async
 
 **Parameters**
 

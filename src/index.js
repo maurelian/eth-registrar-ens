@@ -13,57 +13,33 @@ const normalise = ENS.prototype.normalise;
  * The registrar specification is [here][eip162], and the mechanics of the
  * auction are also outlined [here][mediumPost]
  *
- * ### Example usage:
  *
- *     var Registrar = require('eth-registrar-ens');
- *     var Web3 = require('web3');
+ * #### Example usage:
  *
- *     var web3 = new Web3();
- *     web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+ *    var Registrar = require('eth-registrar-ens');
+ *    var Web3 = require('web3');
+ *    var ENS = require('ethereum-ens');
  *
- * The public ENS is deployed on Ropsten at
- * `0x112234455c3a32fd11230c42e7bccd4a84e02010`, and will be at the same
- * address when deployed on the Ethereum Main net. This package imports the
- * [`ethereum-ens`](https://www.npmjs.com/package/ethereum-ens) package, and
- * defaults to the public ENS address, so all that is needed to construct it is
- * `[web3](https://www.npmjs.com/package/web3)`. The rest is optional.
+ *    var web3 = new Web3();
+ *    web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
  *
- *     var registrar = new Registrar(web3);
+ *    var ens = new ENS(web3)
  *
- * If you are working with another instance of the ENS, you will need to
- * instantiate your own 'ethereum-ens' object with the correct address. You
- * can also specify a custom TLD, and minimum character length for valid names.
- *
- *     var ENS = require('ethereum-ens');
- *     var yourEnsAddress = '0x0dfc1...'
- *     var ens = new ENS(web3, address)
- *     var registrar = new Registrar(web3, ens, 'yourTLD', 0);
- *
- *     var name = 'foobarbaz';
- *     registrar.startAuction(name);
- *
- *     var owner = web3.eth.accounts[0]
- *     var value = web3.toWei(1, 'ether');
- *
- *     // generate a sealed bid
- *     var bid = registrar.shaBid(name, owner, value, 'secret');
- *
- *     // submit a bid, and a deposit value. The parameters of your true bid are secret.
- *     var deposit = web3.toWei(2, 'ether');
- *     registrar.newBid(bid, {value: deposit});
- *
- *     // reveal your bid during the reveal period
- *     registrar.unsealBid(name, owner, value, 'secret');
- *
- *     // After the registration date has passed, assign ownership of the name
- *     // in the ENS. In this case, the highest bidder would now own 'foobarbaz.eth'
- *     registrar.finalizeAuction(name);
+ *    var registrar = new Registrar(web3, ens, 'eth', 7,
+ *      function (err, txid) {
+ *        console.log(txid);
+ *      }
+ *    );
  *
  *
  * Throughout this module, the same optionally-asynchronous pattern as web3 is
  * used: all functions that call web3 take a callback as an optional last
  * argument; if supplied, the function returns nothing, but instead calls the
  * callback with (err, result) when the operation completes.
+ *
+ * **Synchronous calls are useful for talking to a contract in the REPL, but
+ * dapp developers should use only synchronous calls in order to support light
+ * clients like Metamask**.
  *
  * Functions that create transactions also take an optional 'options' argument;
  * this has the same parameters as web3.
@@ -222,7 +198,6 @@ Registrar.prototype.getDeed = function getDeed(address, callback) {
           creationDateResult.toNumber(),
           ownerResult
         );
-        debugger;
         if (callback) {
           callback(null, deed);
         } else {
@@ -238,8 +213,9 @@ Registrar.prototype.getDeed = function getDeed(address, callback) {
  * **Get the properties of the entry for a given a name.**
  *
  * @example
- * registrar.getEntry('foobarbaz');
- * // registrar.getEntry('insurance');
+ * registrar.getEntry('insurance', function (err, result) {
+ *   console.log(result);
+ * });
  * // { name: 'insurance',
  * //   hash: '0x73079a5cb4c7d259f40c6d0841629e689d2a95b85883b371e075ffb2f329c3e1',
  * //   status: 2,
@@ -315,9 +291,15 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
  * generated hashes, helping to prevent other bidders from guessing which
  * names you are interested in.
  *
+ * // TODO: Make complete this async example
  * @example
  * var name = 'foobarbaz';
- * registrar.openAuction(name, { from: web3.eth.accounts[0] });
+ * registrar.openAuction(name, { from: accounts[0], gas: 4700000 },
+ *   function (err, result) {
+ *     console.log(result);
+ *   }
+ * );
+ *
  * @param {string} name The name to start an auction on
  * @param {object} params An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
@@ -368,7 +350,7 @@ Registrar.NoDeposit = Error('You must specify a deposit amount greater than the 
  * inputs of the registrar contract's 'shaBid' function.
  * When a bid is submitted, these values should be saved so that they can be
  * used to reveal the bid params later.
- *
+ * // TODO: Make this example async
  * @example
  * myBid = registrar.bidFactory(
  *   'foobarbaz',
@@ -421,6 +403,7 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret,
  *
  * @example
  *
+ * // TODO: Make this example async
  * registrar.submitBid(highBid,
  *      { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 }
  *  );
@@ -463,6 +446,8 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
  * highest bidder, all your funds will be returned. Returns are sent to the
  * owner address listed on the bid.
  *
+ * // TODO: Make this example async
+ *
  * @example
  * registrar.unsealBid(myBid, { from: accounts[1], gas: 4700000 });
  *
@@ -486,6 +471,7 @@ Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = 
  *
  * Returns a boolean indicating if a bid object, as generated by bidFactory,
  * is revealed or not.
+ * // TODO: Make this example async
  *
  * @example
  * registrar.isBidRevealed(myBid);
@@ -517,6 +503,7 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
  * After the registration date has passed, calling finalizeAuction
  * will set the winner as the owner of the corresponding ENS subnode.
  *
+ * // TODO: Make this example async
  * @example
  * registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 })
  *
