@@ -5,50 +5,18 @@ const ENS = require('ethereum-ens');
 const namehash = ENS.prototype.namehash;
 const normalise = ENS.prototype.normalise;
 
-
 /**
  * Constructs a new Registrar instance, providing an easy-to-use interface
  * to the [Auction Registrar][docs], which governs the `.eth` namespace.
  *
- * The registrar specification is [here][eip162], and the mechanics of the
- * auction are also outlined [here][mediumPost]
+ * @example
+ * var registrar = new Registrar(web3, ens, 'eth', 7,
+ *   function (err, txid) {
+ *     console.log(txid);
+ *   }
+ * );
  *
- *
- * #### Example usage:
- *
- *    var Registrar = require('eth-registrar-ens');
- *    var Web3 = require('web3');
- *    var ENS = require('ethereum-ens');
- *
- *    var web3 = new Web3();
- *    web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
- *
- *    var ens = new ENS(web3)
- *
- *    var registrar = new Registrar(web3, ens, 'eth', 7,
- *      function (err, txid) {
- *        console.log(txid);
- *      }
- *    );
- *
- *
- * Throughout this module, the same optionally-asynchronous pattern as web3 is
- * used: all functions that call web3 take a callback as an optional last
- * argument; if supplied, the function returns nothing, but instead calls the
- * callback with (err, result) when the operation completes.
- *
- * **Synchronous calls are useful for talking to a contract in the REPL, but
- * dapp developers should use only synchronous calls in order to support light
- * clients like Metamask**.
- *
- * Functions that create transactions also take an optional 'options' argument;
- * this has the same parameters as web3.
- *
- * [docs]: http://docs.ens.domains/en/latest/auctions.html
- * [eip162]: https://github.com/ethereum/EIPs/issues/162
- * [mediumPost]: https://medium.com/@_maurelian/explaining-the-ethereum-namespace-auction-241bec6ef751#.tyzb7qlfv
- *
- * @author J Maurelian
+ * @author Maurelian
  * @date 2016
  * @license LGPL
  *
@@ -57,6 +25,8 @@ const normalise = ENS.prototype.normalise;
  * @param {integer} minLength The minimum length of a name require by the registrar.
  * @param {string} tld The top level domain
  * @param {string} ens The address of the ENS instance
+ *
+ * @returns {string} The registrar address
  */
 function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callback) {
   this.web3 = web3;
@@ -82,6 +52,7 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callba
     } else {
       this.address = result;
       this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(result);
+      //
       callback(null, result);
     }
   });
@@ -95,7 +66,30 @@ Registrar.prototype.checkLength = function checkLength(name) {
   }
 };
 
-
+/**
+ * **Get the "mode" of a name**
+ *
+ * For the registrar contract deployed to Ropsten a given name can be in
+ * one of 4 modes: Open, Auction, Owned, Forbidden
+ *
+ * The mainnet registrar as currently designed can be in one of 5 modes:
+ * Open, Auction, Reveal, Owned, Forbidden.
+ *
+ * @example
+ * var name = 'foobarbaz';
+ * registrar.openAuction(name, { from: accounts[0], gas: 4700000 },
+ *   function (err, result) {
+ *     console.log(result);
+ *   }
+ * );
+ *
+ * @param {string} name The name to start an auction on
+ * @param {object} params An optional transaction object to pass to web3.
+ * @param {function} callback An optional callback; if specified, the
+ *        function executes asynchronously.
+ *
+ * @returns {string} The transaction ID if callback is not supplied.
+ */
 Registrar.prototype.getMode = function getMode(name, status, registrationDate, deed) {
   // Check the auction mode
   let mode = '';
@@ -287,18 +281,16 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
 /**
  * **Open an auction for the desired name**
  *
- * This method also opens auctions on several other randomly
- * generated hashes, helping to prevent other bidders from guessing which
- * names you are interested in.
+ * This method uses the registrars startAuctions function to opens an auction for the 
+ * given name, and several other randomly generated hashes, helping to prevent other 
+ * bidders from guessing which of the hashes you are interested in. 
  *
- * // TODO: Make complete this async example
  * @example
  * var name = 'foobarbaz';
  * registrar.openAuction(name, { from: accounts[0], gas: 4700000 },
  *   function (err, result) {
  *     console.log(result);
- *   }
- * );
+ * });
  *
  * @param {string} name The name to start an auction on
  * @param {object} params An optional transaction object to pass to web3.
@@ -350,7 +342,6 @@ Registrar.NoDeposit = Error('You must specify a deposit amount greater than the 
  * inputs of the registrar contract's 'shaBid' function.
  * When a bid is submitted, these values should be saved so that they can be
  * used to reveal the bid params later.
- * // TODO: Make this example async
  * @example
  * myBid = registrar.bidFactory(
  *   'foobarbaz',
@@ -377,8 +368,7 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret,
     value,
     owner,
     secret,
-    hexSecret: sha3(secret),
-    // Use the bid properties to get the shaBid value from the contract
+    hexSecret: sha3(secret)
   };
   if (callback) {
     this.contract.shaBid(sha3(normalisedName), owner, value, sha3(secret),
@@ -397,16 +387,24 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret,
   }
 };
 
-
 /**
  * **Submit a sealed bid and deposit.**
  *
- * @example
+ * Uses the registrar's newBid function to submit a bid given an object created
+ * by the 'bidFactory'.
  *
- * // TODO: Make this example async
+ * @example
+ * myBid = registrar.bidFactory(
+ *   'foobarbaz',
+ *   web3.eth.accounts[0],
+ *   web3.toWei(2, 'ether'),
+ *   'secret'
+ * );
+ *
  * registrar.submitBid(highBid,
- *      { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 }
- *  );
+ *      { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 },
+ *      function (err, result) { console.log(result)}
+ * );
  *
  * @param {object} bid A Bid object.
  * @param {object} params An optional transaction object to pass to web3. The
@@ -436,20 +434,20 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
 /**
  * **Unseal your bid during the reveal period**
  *
- * During (or non-ideally before) the reveal period (final 48 hours) of the auction,
- * you must submit the parameters of a bid. The registrar contract will generate
- * the bid string, and associate the bid parameters with the previously submitted bid string
- * and deposit. If you have not already submitted a bid string, the registrar
- * will throw. If your bid is revealed as the current highest; the difference
- * between your deposit and bid value will be returned to you, and the
- * previous highest bidder will have their funds returned. If you are not the
- * highest bidder, all your funds will be returned. Returns are sent to the
- * owner address listed on the bid.
+ * During the reveal period of the auction, you must submit the parameters of a bid
+ * The registrar contract will generate the bid string, and associate the bid
+ * parameters with the previously submitted bid string and deposit. If you have not
+ * already submitted a bid string, the registrar will throw. If your bid is
+ * revealed as the current highest; the difference between your deposit and bid
+ * value will be returned to you, and the previous highest bidder will have their
+ * funds returned. If you are not the highest bidder, all your funds will be returned.
+ * Returns are sent to the owner address listed on the bid.
  *
- * // TODO: Make this example async
  *
  * @example
- * registrar.unsealBid(myBid, { from: accounts[1], gas: 4700000 });
+ * registrar.unsealBid(myBid, { from: accounts[1], gas: 4700000 }, function (err, result) {
+ *   console.log(result);
+ * })
  *
  * @param {string} bid A bid object
  * @param {object} params An optional transaction object to pass to web3.
@@ -500,12 +498,15 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
 /**
  * **Finalize the auction**
  *
- * After the registration date has passed, calling finalizeAuction
- * will set the winner as the owner of the corresponding ENS subnode.
+ * After the registration date has passed, this method calls the registrar's 
+ * finalizeAuction function to set the winner as the owner of the corresponding
+ * ENS subnode.
  *
- * // TODO: Make this example async
  * @example
- * registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 })
+ * registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 }, 
+ *   function (err, result) {
+ *     console.log(result);
+ * })
  *
  * @param {string} name
  * @param {object} params An optional transaction object to pass to web3.
