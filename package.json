@@ -31,9 +31,9 @@
   },
   "homepage": "https://github.com/maurelian/dot-eth-js#readme",
   "dependencies": {
-    "ethereum-ens": "^0.2.4",
+    "ethereum-ens": "^0.4.0",
     "underscore": "^1.8.3",
-    "web3": "^0.16.0"
+    "web3": "^0.18.2"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
