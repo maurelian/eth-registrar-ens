@@ -83,7 +83,7 @@ describe('Registrar', () => {
     registrar.bidFactory(
         'foobarbaz',
         // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        accounts[0],
         web3.toWei(2, 'ether'), // value
         'secret',
         (highBidErr, highBidObject) => {
@@ -92,7 +92,6 @@ describe('Registrar', () => {
           highBid = highBidObject;
           registrar.bidFactory(
               'foobarbaz',
-              // just a randomly generated ethereum address
               accounts[0],
               web3.toWei(1, 'ether'), // value
               'secret',
@@ -132,8 +131,8 @@ describe('Registrar', () => {
     });
 
     it('Should return an error when the name contains special characters', (done) => {
-      registrar.openAuction('foo{}øøôôóOOOo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
-        assert.equal(err, ENS.InvalidName);
+      registrar.openAuction('fooøø*/.ôôóOOOo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
+        assert.ok(err.toString().indexOf('Illegal char') !== -1, err);
         assert.equal(txid, null);
         done();
       });
@@ -298,7 +297,7 @@ describe('Registrar', () => {
 
   describe('#finalizeAuction()', () => {
     it('Should throw an error if called too soon', (done) => {
-      registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
+      registrar.finalizeAuction('foobarbaz', { from: accounts[0], gas: 4700000 },
         (finalizeAuctionErr, finalizeAuctionResult) => {
           assert.ok(finalizeAuctionErr.toString().indexOf('invalid JUMP') !== -1, finalizeAuctionErr);
           assert.equal(finalizeAuctionResult, null);
@@ -315,7 +314,7 @@ describe('Registrar', () => {
         params: [86400 * 7 * 4],
         id: new Date().getTime()
       }, () => {
-        registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
+        registrar.finalizeAuction('foobarbaz', { from: accounts[0], gas: 4700000 },
           (finalizeAuctionErr, finalizeAuctionResult) => {
             assert.equal(finalizeAuctionErr, null);
             assert.ok(finalizeAuctionResult != null);
@@ -330,15 +329,48 @@ describe('Registrar', () => {
     });
   });
 
-  describe.skip('#invalidateName()', () => {
+  describe('#transfer()', () => {
+    it('Should throw an error if the sender is not the owner', (done) => {
+      registrar.transfer('foobarbaz', accounts[9], { from: accounts[8], gas: 4700000 },
+        (transferNameErr, transferNameResult) => {
+          assert.ok(transferNameErr.toString().indexOf('Only the owner' !== -1));
+          assert.equal(transferNameResult, null);
+          done();
+        }
+      );
+    });
+
+    it('Should update the owner of the deed after a successful transfer', (done) => {
+      registrar.transfer('foobarbaz', accounts[9], { from: accounts[0], gas: 4700000 },
+        (transferNameErr, transferNameResult) => {
+          assert.equal(transferNameErr, null);
+          assert.ok(typeof transferNameResult === 'string');
+          registrar.getEntry('foobarbaz', (getEntryErr, getEntryResult) => {
+            assert.equal(getEntryErr, null);
+            assert.equal(getEntryResult.deed.owner, accounts[9]);
+            done();
+          });
+        }
+      );
+    });
   });
 
   describe.skip('#releaseDeed()', () => {
+    it('Should do something specific', (done) => {
+      done();
+    });
   });
 
   describe.skip('#cancelBid()', () => {
+    it('Should do something specific', (done) => {
+      done();
+    });
   });
-  describe.skip('#transfer()', () => {
+
+  describe.skip('#invalidateName()', () => {
+    it('Should do something specific', (done) => {
+      done();
+    });
   });
 });
 
