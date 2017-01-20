@@ -539,7 +539,18 @@ Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}
  *
  * @returns {string} The transaction ID if callback is not supplied.
  */
-Registrar.prototype.transfer = function transfer() {
+Registrar.prototype.transfer = function transfer(name, newOwner, params = {}, callback = null) {
+  const normalisedName = normalise(name);
+  const hash = this.sha3(normalisedName);
+  getEntry(normalisedName, (err, result) => {
+    if ()
+  });
+
+  if (callback) {
+    this.contract.transfer(hash, newOwner, params, callback);
+  } else {
+    return this.contract.transfer(hash, newOwner, params);
+  }
 };
 
 /**
