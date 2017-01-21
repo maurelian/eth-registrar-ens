@@ -169,6 +169,7 @@ describe('Registrar', () => {
     it('Should return the correct properties of a name', (done) => {
       // a name being auctioned
       registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+        debugger;
         assert.equal(entryErr1, null);
         assert.equal(entryResult1.name, 'foobarbaz');
         assert.equal(entryResult1.status, 1);
@@ -179,6 +180,7 @@ describe('Registrar', () => {
         assert.equal(entryResult1.highestBid, 0);
         // a name NOT being auctioned
         registrar.getEntry('thisnameisopen', (entryErr2, entryResult2) => {
+          debugger;
           assert.equal(entryErr2, null);
           assert.equal(entryResult2.name, 'thisnameisopen');
           assert.equal(entryResult2.status, 0);
@@ -334,8 +336,11 @@ describe('Registrar', () => {
     it('Should throw an error if the sender is not the owner', (done) => {
       registrar.transfer('foobarbaz', accounts[9], { from: accounts[8], gas: 4700000 },
         (transferNameErr, transferNameResult) => {
-          assert.equal(transferNameErr, null);
-          assert.ok(typeof transferNameResult === 'string');
+          debugger;
+          assert.equal(
+            transferNameErr.toString().indexOf('Only the current owner') !== -1, transferNameErr
+          );
+          assert.equal(transferNameResult, null);
           done();
         }
       );

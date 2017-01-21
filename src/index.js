@@ -240,10 +240,11 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
     name = normalise(input);
     hash = this.sha3(name);
   }
-
+  debugger;
   const registrarContract = this.contract;
-
   registrarContract.entries(hash, (entryErr, entry) => {
+    debugger; // we're not getting to this point with the transfer call
+    if (entryErr) console.log(entryErr);
     const entryObject = new Entry(
       name,
       hash,
@@ -526,8 +527,34 @@ Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}
   }
 };
 
+// TODO: make this specify the error as well http://stackoverflow.com/a/25344624
+Registrar.onlyOwnerError = new Error(
+    'Only the current owner can transfer this name.'
+  );
+
+// maybe I should just scrap this whole method.
+// I think I misunderstand something about prototypes here.
+// what if this was just the function, and it took a registrary object? 
+
+function verifyOwnership(registrar, name, address) {
+// Registrar.prototype.verifyOwnership = function verifyOwnership(name, address) {
+  const normalisedName = normalise(name);
+  // const registrar = this;
+  debugger; // execution skips getEntry and jumps to end of this function
+  registrar.getEntry(normalisedName, (err, result) => {
+    // we're not getting to this point
+    debugger; 
+    console.log(539);
+    const currentOwner = result.deed.owner;
+    if (address !== currentOwner) {
+      debugger;
+      console.log(543, this.onlyOwnerError.msg);
+      throw this.onlyOwnerError;
+    }
+  });
+};
+
 /**
- * __Not yet implemented__
  * The owner of a domain may transfer it, and the associated deed,
  * to someone else at any time.
  *
@@ -542,15 +569,23 @@ Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}
 Registrar.prototype.transfer = function transfer(name, newOwner, params = {}, callback = null) {
   const normalisedName = normalise(name);
   const hash = this.sha3(normalisedName);
-  getEntry(normalisedName, (err, result) => {
-    if ()
-  });
-
   if (callback) {
-    this.contract.transfer(hash, newOwner, params, callback);
+    try { 
+      // this isn't throwing an error:
+      debugger;
+      // this.verifyOwnership(name, params.from);
+      verifyOwnership(this, name, params.from); // not throwing an error
+      // this won't run if the previous line throws an error
+      this.contract.transfer(hash, newOwner, params, callback);
+    } catch (e) {
+      debugger;
+      callback(e, null);
+    }
   } else {
-    return this.contract.transfer(hash, newOwner, params);
+    this.verifyOwnership(name, params.from);
+    this.contract.transfer(hash, newOwner, params);
   }
+  
 };
 
 /**
