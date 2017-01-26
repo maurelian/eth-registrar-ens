@@ -10,8 +10,8 @@
   "scripts": {
     "prepublish": "npm run build",
     "test": "mocha src/test/test",
-    "posttest": "npm run lint",
-    "build": "babel src -d lib && documentation readme src/index.js -f md -s 'Overview'",
+    "posttest": "npm run lint && documentation readme src/index.js -f md -s 'Overview'",
+    "build": "babel src -d lib",
     "lint": "eslint src --ignore-path .gitignore"
   },
   "repository": {
