@@ -281,9 +281,9 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
 /**
  * **Open an auction for the desired name**
  *
- * This method uses the registrars startAuctions function to opens an auction for the 
- * given name, and several other randomly generated hashes, helping to prevent other 
- * bidders from guessing which of the hashes you are interested in. 
+ * This method uses the registrars startAuctions function to opens an auction for the
+ * given name, and several other randomly generated hashes, helping to prevent other
+ * bidders from guessing which of the hashes you are interested in.
  *
  * @example
  * var name = 'foobarbaz';
@@ -419,7 +419,6 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
     if (params.value < bid.value) {
       callback(Registrar.NoDeposit, null);
     } else {
-      // FIX: says I'm making a synchronous request here?
       this.contract.newBid(bid.shaBid, params, callback);
     }
   } else {
@@ -429,7 +428,6 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
     return this.contract.newBid(bid.shaBid, params);
   }
 };
-
 
 /**
  * **Unseal your bid during the reveal period**
@@ -498,12 +496,12 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
 /**
  * **Finalize the auction**
  *
- * After the registration date has passed, this method calls the registrar's 
+ * After the registration date has passed, this method calls the registrar's
  * finalizeAuction function to set the winner as the owner of the corresponding
  * ENS subnode.
  *
  * @example
- * registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 }, 
+ * registrar.finalizeAuction('foobarbaz', { from: accounts[1], gas: 4700000 },
  *   function (err, result) {
  *     console.log(result);
  * })
@@ -542,15 +540,36 @@ Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}
 Registrar.prototype.transfer = function transfer(name, newOwner, params = {}, callback = null) {
   const normalisedName = normalise(name);
   const hash = this.sha3(normalisedName);
-  getEntry(normalisedName, (err, result) => {
-    if ()
-  });
+  // check that the transaction sender owns the name
+  let isOwner = false;
+  const notOwnerErr = new Error('Only the owner of a name can transfer it.');
 
-  if (callback) {
-    this.contract.transfer(hash, newOwner, params, callback);
-  } else {
-    return this.contract.transfer(hash, newOwner, params);
-  }
+  const registrarContract = this.contract;
+  const deed = this.web3.eth.contract(interfaces.deedInterface);
+
+  registrarContract.entries(hash, (entryErr, entryResult) => {
+    const deedContract = deed.at(entryResult[1]);
+    deedContract.owner((ownerErr, ownerResult) => {
+      if (ownerResult === params.from) {
+        isOwner = true;
+      }
+      if (callback) {
+        if (ownerErr) {
+          callback(ownerErr);
+        } else if (!isOwner) {
+          callback(notOwnerErr);
+        } else {
+          this.contract.transfer(hash, newOwner, params, callback);
+        }
+      } else if (ownerErr) {
+        return ownerErr;
+      } else if (!isOwner) {
+        return notOwnerErr;
+      } else {
+        return this.contract.transfer(hash, newOwner, params);
+      }
+    });
+  });
 };
 
 /**

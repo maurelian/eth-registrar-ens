@@ -83,7 +83,7 @@ describe('Registrar', () => {
     registrar.bidFactory(
         'foobarbaz',
         // just a randomly generated ethereum address
-        '0x5834eb6b2acac5b0bfff8413622704d890f80e9e',
+        accounts[0],
         web3.toWei(2, 'ether'), // value
         'secret',
         (highBidErr, highBidObject) => {
@@ -92,7 +92,6 @@ describe('Registrar', () => {
           highBid = highBidObject;
           registrar.bidFactory(
               'foobarbaz',
-              // just a randomly generated ethereum address
               accounts[0],
               web3.toWei(1, 'ether'), // value
               'secret',
@@ -133,7 +132,7 @@ describe('Registrar', () => {
 
     it('Should return an error when the name contains special characters', (done) => {
       registrar.openAuction('fooøø*/.ôôóOOOo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
-        assert.ok(err.toString().indexOf("Illegal char") !== -1, err);
+        assert.ok(err.toString().indexOf('Illegal char') !== -1, err);
         assert.equal(txid, null);
         done();
       });
@@ -334,8 +333,8 @@ describe('Registrar', () => {
     it('Should throw an error if the sender is not the owner', (done) => {
       registrar.transfer('foobarbaz', accounts[9], { from: accounts[8], gas: 4700000 },
         (transferNameErr, transferNameResult) => {
-          assert.equal(transferNameErr, null);
-          assert.ok(typeof transferNameResult === 'string');
+          assert.ok(transferNameErr.toString().indexOf('Only the owner' !== -1));
+          assert.equal(transferNameResult, null);
           done();
         }
       );
