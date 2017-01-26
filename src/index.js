@@ -525,12 +525,17 @@ Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}
 };
 
 /**
- * __Not yet implemented__
  * The owner of a domain may transfer it, and the associated deed,
  * to someone else at any time.
  *
- * @param {string} name The node to transfer
- * @param {string} newOwner The address to transfer ownership to
+ * @example
+ * registrar.transfer('foobarbaz', accounts[2] { from: accounts[1], gas: 4700000 },
+ *   function (err, result) {
+ *     console.log(result);
+ * })
+ *
+ * @param {string} name The name to transfer
+ * @param {string} newOwner The address to transfer ownership to.
  * @param {object} options An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
