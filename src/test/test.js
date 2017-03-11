@@ -33,19 +33,18 @@ describe('Registrar', () => {
 
       // Use this block to recompile and save
       // Otherwise it's too slow for dev purposes
-      const input = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
-      const output = solc.compile(input, 0);
-      debugger;
-      const compiled = {};
-      for (const contractName in output.contracts) {
-        // code and ABI that are needed by web3
-        compiled[contractName] = {};
-        compiled[contractName].bytecode = output.contracts[contractName].bytecode;
-        compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
-      }
-      fs.writeFileSync('src/test/contracts.json', JSON.stringify(compiled));
+      // const input = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
+      // const output = solc.compile(input, 0);
+      // const compiled = {};
+      // for (const contractName in output.contracts) {
+      //   // code and ABI that are needed by web3
+      //   compiled[contractName] = {};
+      //   compiled[contractName].bytecode = output.contracts[contractName].bytecode;
+      //   compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
+      // }
+      // fs.writeFileSync('src/test/contracts.json', JSON.stringify(compiled));
       // Use to speed up the testing process during development:
-      // const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
+      const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
       const deployer = compiled['DeployENS']; // eslint-disable-line
       const deployensContract = web3.eth.contract(deployer.interface);
       deployensContract.new({
@@ -216,14 +215,17 @@ describe('Registrar', () => {
     });
 
     it('Should create a new sealedBid Deed holding the value of deposit', (done) => {
+      debugger;
       registrar.submitBid(highBid,
         { from: accounts[0], value: web3.toWei(3, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
+          debugger;
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
-          registrar.contract.sealedBids(
-            highBid.shaBid,
+          debugger;
+          registrar.contract.sealedBids(accounts[0], highBid.shaBid,
             (sealedBidError, sealedBidResult) => {
+              debugger;
               assert.equal(sealedBidError, null);
               assert.ok(
                 sealedBidResult !== '0x0000000000000000000000000000000000000000',
