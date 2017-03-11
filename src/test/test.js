@@ -30,11 +30,12 @@ describe('Registrar', () => {
         throw err;
       }
       accounts = accts;
-      /*
+
       // Use this block to recompile and save
       // Otherwise it's too slow for dev purposes
-      const input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
-      const output = solc.compile(input, 1);
+      const input = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
+      const output = solc.compile(input, 0);
+      debugger;
       const compiled = {};
       for (const contractName in output.contracts) {
         // code and ABI that are needed by web3
@@ -42,10 +43,9 @@ describe('Registrar', () => {
         compiled[contractName].bytecode = output.contracts[contractName].bytecode;
         compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
       }
-      fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
-      */
+      fs.writeFileSync('src/test/contracts.json', JSON.stringify(compiled));
       // Use to speed up the testing process during development:
-      const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
+      // const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
       const deployer = compiled['DeployENS']; // eslint-disable-line
       const deployensContract = web3.eth.contract(deployer.interface);
       deployensContract.new({
