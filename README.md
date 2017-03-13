@@ -157,7 +157,7 @@ Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 **Open an auction for the desired name**
 
-This method uses the registrars startAuctions function to opens an auction for the
+This method uses the registrar's startAuctions function to opens an auction for the
 given name, and several other randomly generated hashes, helping to prevent other
 bidders from guessing which of the hashes you are interested in.
 
@@ -284,6 +284,7 @@ is revealed or not.
 
 **Parameters**
 
+-   `address` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address that placed the bid
 -   `bid` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** A bid object
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
            function executes asynchronously.
@@ -291,7 +292,7 @@ is revealed or not.
 **Examples**
 
 ```javascript
-registrar.isBidRevealed(myBid);
+registrar.isBidRevealed(address, myBid);
 ```
 
 Returns **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Whether or not the bid was revealed.

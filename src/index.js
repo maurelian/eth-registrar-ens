@@ -470,17 +470,18 @@ Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = 
  * // TODO: Make this example async
  *
  * @example
- * registrar.isBidRevealed(myBid);
+ * registrar.isBidRevealed(address, myBid);
  *
+ * @param {string} address The address that placed the bid
  * @param {string} bid A bid object
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
  * @returns {boolean} Whether or not the bid was revealed.
  */
-Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
+Registrar.prototype.isBidRevealed = function isBidRevealed(address, bid, callback) {
   if (callback) {
-    this.contract.sealedBids.call(bid.shaBid, (err, result) => {
+    this.contract.sealedBids.call(address, bid.shaBid, (err, result) => {
       if (err) {
         return callback(err);
       }
@@ -488,7 +489,7 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
       callback(null, result === '0x0000000000000000000000000000000000000000');
     });
   } else {
-    return this.contract.sealedBids.call(bid.shaBid) ===
+    return this.contract.sealedBids.call(address, bid.shaBid) ===
       '0x0000000000000000000000000000000000000000';
   }
 };
