@@ -30,23 +30,22 @@ describe('Registrar', () => {
         throw err;
       }
       accounts = accts;
-      /*
+
       // Use this block to recompile and save
       // Otherwise it's too slow for dev purposes
-      const input = fs.readFileSync('test/dotEthRegistrar.sol').toString();
-      const output = solc.compile(input, 1);
-      const compiled = {};
-      for (const contractName in output.contracts) {
-        // code and ABI that are needed by web3
-        compiled[contractName] = {};
-        compiled[contractName].bytecode = output.contracts[contractName].bytecode;
-        compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
-      }
-      fs.writeFileSync('test/contracts.json', JSON.stringify(compiled));
-      */
+      // const input = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
+      // const output = solc.compile(input, 1);
+      // const compiled = {};
+      // for (const contractName in output.contracts) {
+      //   // code and ABI that are needed by web3
+      //   compiled[contractName] = {};
+      //   compiled[contractName].bytecode = output.contracts[contractName].bytecode;
+      //   compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
+      // }
+      // fs.writeFileSync('src/test/contracts.json', JSON.stringify(compiled));
       // Use to speed up the testing process during development:
       const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
-      const deployer = compiled['DeployENS']; // eslint-disable-line
+      const deployer = compiled[':DeployENS']; // eslint-disable-line
       const deployensContract = web3.eth.contract(deployer.interface);
       deployensContract.new({
         from: accts[0],
@@ -221,8 +220,7 @@ describe('Registrar', () => {
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
-          registrar.contract.sealedBids(
-            highBid.shaBid,
+          registrar.contract.sealedBids(accounts[0], highBid.shaBid,
             (sealedBidError, sealedBidResult) => {
               assert.equal(sealedBidError, null);
               assert.ok(
@@ -244,7 +242,7 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as not revealed yet', (done) => {
-      registrar.isBidRevealed(highBid, (err, isRevealed) => {
+      registrar.isBidRevealed(accounts[0], highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, false);
         done();
@@ -257,9 +255,9 @@ describe('Registrar', () => {
       web3.currentProvider.sendAsync({
         jsonrpc: '2.0',
         method: 'evm_increaseTime',
-        // 86400 seconds per day, first auctions end 2 weeks after registrar contract is deployed
+        // 86400 seconds per day, first auctions end 4 weeks after registrar contract is deployed
         // The reveal period is the last 24 hours of the auction.
-        params: [86400 * ((7 * 2) - 1)],
+        params: [86400 * ((7 * 4) - 1)],
         id: new Date().getTime()
       }, () => {
         registrar.unsealBid(highBid, { from: accounts[0], gas: 4700000 }, (err, result) => {
@@ -287,7 +285,7 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as revealed', (done) => {
-      registrar.isBidRevealed(highBid, (err, isRevealed) => {
+      registrar.isBidRevealed(accounts[0], highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, true);
         done();
