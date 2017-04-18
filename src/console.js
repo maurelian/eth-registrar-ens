@@ -35,9 +35,12 @@ web3.eth.getAccounts((err, accts) => { // eslint-disable-line
   if (err) {
     console.log(err); // eslint-disable-line
   } else {
-    const registrar = new Registrar(
-      web3, new ENS(web3), 'eth', 7,
-        (registrarErr, registrarResult) => { // eslint-disable-line
+    // live net
+    ens = new ENS(web3, "0x314159265dd8dbb310642f98f50c066173c1259b");
+    // ropsten
+    // ens = new ENS(web3, "0x112234455c3a32fd11230c42e7bccd4a84e02010");
+    registrar = new Registrar(web3, ens, 'eth', 7,
+      (constructRegistrarErr, constructRegistrarResult) => {
           const ens = registrar.ens; // eslint-disable-line
           console.log(`connecting to: ` + // eslint-disable-line
             `\n  * the ENS registry at ${ens.registry.address} ` + // eslint-disable-line

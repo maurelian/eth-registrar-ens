@@ -1,6 +1,6 @@
 {
   "name": "eth-registrar-ens",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "\"JS bindings for the ENS initial registrar, auctioning `.eth` names\"",
   "main": "lib/index.js",
   "files": [
@@ -10,8 +10,8 @@
   "scripts": {
     "prepublish": "npm run build",
     "test": "mocha src/test/test",
-    "posttest": "npm run lint",
-    "build": "babel src -d lib && documentation readme src/index.js -f md -s 'Overview'",
+    "posttest": "npm run lint && documentation readme src/index.js -f md -s 'Overview'",
+    "build": "babel src -d lib",
     "lint": "eslint src --ignore-path .gitignore"
   },
   "repository": {
@@ -31,10 +31,9 @@
   },
   "homepage": "https://github.com/maurelian/dot-eth-js#readme",
   "dependencies": {
-    "ethereum-ens": "^0.2.4",
-    "node-stringprep": "^0.8.0",
+    "ethereum-ens": "^0.4.0",
     "underscore": "^1.8.3",
-    "web3": "^0.16.0"
+    "web3": "^0.18.2"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
