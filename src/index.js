@@ -104,7 +104,7 @@ Registrar.prototype.getMode = function getMode(name, status, registrationDate, d
     }
   } else {
     // If name is of valid length
-    if (status === 0) {
+    if (status === 0) { // eslint-disable-line
       // Not an auction yet
       mode = 'open';
     } else if (status === 1) {
