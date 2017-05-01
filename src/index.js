@@ -312,7 +312,12 @@ Registrar.prototype.getAllowedTime = function getAllowedTime(input, callback) {
  * Shuffles array in place. ES6 version
  * @param {Array} a items The array containing the items.
  */
-
+function shuffle(a) {
+    for (let i = a.length; i; i--) {
+        let j = Math.floor(Math.random() * i);
+        [a[i - 1], a[j]] = [a[j], a[i - 1]];
+    }
+}
 
 
 /**
@@ -341,14 +346,6 @@ Registrar.prototype.openAuction = function openAuction(name, randomHashes) {
   var callback = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
 
   if (typeof randomHashes == 'undefined') randomHashes = [];
-
-  // Shuffle array function
-  function shuffle(a) {
-      for (let i = a.length; i; i--) {
-          let j = Math.floor(Math.random() * i);
-          [a[i - 1], a[j]] = [a[j], a[i - 1]];
-      }
-  }
 
   if (callback) {
     try {
@@ -460,21 +457,24 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret,
  * @return The transaction ID if callback is not supplied.
  */
 // TODO: should also open some new random hashes to obfuscate bidding activity
-Registrar.prototype.submitBid = function submitBid(bid) {
-  var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-  var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+Registrar.prototype.submitBid = function submitBid(bid, randomHashes) {
+  var params = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var callback = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+  if (typeof randomHashes == 'undefined') randomHashes = [];
+  shuffle(randomHashes);
+
   console.log('submit Bid', bid);
   if (callback) {
     if (params.value < bid.value) {
       callback(Registrar.NoDeposit, null);
     } else {
-      this.contract.newBid(bid.shaBid, params, callback);
+      this.contract.startAuctionsAndBid(randomHashes, bid.shaBid, params, callback);
     }
   } else {
     if (params.value < bid.value) {
       throw Registrar.NoDeposit;
     }
-    return this.contract.newBid(bid.shaBid, params);
+    return this.contract.startAuctionsAndBid(randomHashes, bid.shaBid, params);
   }
 };
 
@@ -508,9 +508,9 @@ Registrar.prototype.unsealBid = function unsealBid(bid) {
   var callback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
 
   if (callback) {
-    this.contract.unsealBid(bid.hash, bid.owner, bid.value, bid.hexSecret, params, callback);
+    this.contract.unsealBid(bid.hash, bid.value, bid.hexSecret, params, callback);
   } else {
-    return this.contract.unsealBid(bid.hash, bid.owner, bid.value, bid.hexSecret, params);
+    return this.contract.unsealBid(bid.hash, bid.value, bid.hexSecret, params);
   }
 };
 
