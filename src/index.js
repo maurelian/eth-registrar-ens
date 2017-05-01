@@ -45,6 +45,9 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callba
   this.tld = tld;
   this.minLength = minLength;
   this.rootNode = namehash(this.tld);
+
+  let _registrar = this;
+
   ens.owner(this.tld, (err, result) => {
     if (err) {
       callback(err, null);
@@ -53,11 +56,11 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callba
       this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(result);
       
       this.contract.registryStarted(function(err, startingDate) {
-        this.registryStarted = startingDate;
+        _registrar.registryStarted = startingDate;
         callback(null, result);
       })
     }
-  });  
+  });
 }
 
 Registrar.TooShort = Error('Name is too short');
@@ -105,27 +108,9 @@ Registrar.prototype.getMode = function getMode(name, status, registrationDate, d
       mode = 'forbidden-can-invalidate';
     }
   } else {
-    // If name is of valid length
-    if (status === 1) {
-      var now = new Date();
-      var registration = new Date(registrationDate * 1000);
-
-      if (registration > now) {
-        // Bids are open
-        mode = 'auction';
-      } else {
-        if (deed === '0x0000000000000000000000000000000000000000') {
-          // can be opened again
-          mode = 'open';
-        } else {
-          // needs to be finalized
-          mode = 'finalize';
-        }
-      }
-    } else {
-      var modeNames = ['open', 'auction', 'owned', 'forbidden', 'reveal', 'not-yet-available'];
-      mode = modeNames[status];
-    }  
+    // If name is of valid length  
+    var modeNames = ['open', 'auction', 'owned', 'forbidden', 'reveal', 'not-yet-available'];
+    mode = modeNames[status];
   }
 
   return mode;
@@ -441,7 +426,6 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret,
  *        function executes asynchronously.
  * @return The transaction ID if callback is not supplied.
  */
-// TODO: should also open some new random hashes to obfuscate bidding activity
 Registrar.prototype.submitBid = function submitBid(bid, randomHashes, params = {}, callback = null) {
   if (typeof randomHashes == 'undefined') randomHashes = [];
   shuffle(randomHashes);
@@ -544,8 +528,8 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
  * @returns {string} The transaction ID if callback is not supplied.
  */
 Registrar.prototype.finalizeAuction = function finalizeAuction(name, params = {}, callback = null) {
-  var normalisedName = normalise(name);
-  var hash = this.sha3(normalisedName);
+  const normalisedName = normalise(name);
+  const hash = this.sha3(normalisedName);
 
   if (callback) {
     this.contract.finalizeAuction(hash, params, callback);
