@@ -9,8 +9,8 @@ const Web3 = require('web3');
 
 const web3 = new Web3();
 
-web3.setProvider(TestRPC.provider());
-// web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+// run TestRPC with higher gas limit. The DeployENS contract is pretty expensive.
+web3.setProvider(TestRPC.provider({ gasLimit: '0x5b8d80' }));
 
 let accounts = null;
 let ens = null;
@@ -31,26 +31,21 @@ describe('Registrar', () => {
       }
       accounts = accts;
 
-      // Use this block to recompile and save
-      // Otherwise it's too slow for dev purposes
-      // const input = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
-      // const output = solc.compile(input, 1);
-      // const compiled = {};
-      // for (const contractName in output.contracts) {
-      //   // code and ABI that are needed by web3
-      //   compiled[contractName] = {};
-      //   compiled[contractName].bytecode = output.contracts[contractName].bytecode;
-      //   compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
-      // }
-      // fs.writeFileSync('src/test/contracts.json', JSON.stringify(compiled));
-      // Use to speed up the testing process during development:
-      const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
-      const deployer = compiled[':DeployENS']; // eslint-disable-line
+      const sources = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
+      const output = solc.compile({ sources: { sources } }, 0);
+      const compiled = {};
+      for (const contract in output.contracts) {
+        const contractName = contract.split(':')[1];
+        compiled[contractName] = {};
+        compiled[contractName].bytecode = output.contracts[contract].bytecode;
+        compiled[contractName].interface = JSON.parse(output.contracts[contract].interface);
+      }
+      const deployer = compiled['DeployENS']; // eslint-disable-line
       const deployensContract = web3.eth.contract(deployer.interface);
       deployensContract.new({
         from: accts[0],
         data: deployer.bytecode,
-        gas: 4700000
+        gas: 6000000
       }, (deploymentErr, contract) => {
         assert.equal(deploymentErr, null);
         if (contract.address !== undefined) {
@@ -112,6 +107,15 @@ describe('Registrar', () => {
     //     'secret'
     // );
   });
+
+  before((done) => {
+    web3.currentProvider.sendAsync({
+      jsonrpc: "2.0",
+      method: "evm_increaseTime",
+      params: [8*7*86400],  // 86400 seconds in a day
+      id: new Date().getTime()
+    }, done);
+  })
 
   describe('#bidFactory()', () => {
     it('should produce valid hashes', () => {
