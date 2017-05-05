@@ -204,14 +204,6 @@ describe('Registrar', () => {
         });
       });
     });
-
-    it('Should return an error if given a nameprepped-name with any status other than `Open`', (done) => {
-      registrar.openAuction('foobarbaz', [], { from: accounts[0], gas: 4700000 }, (err, result) => {
-        assert.ok(err.toString().indexOf('invalid JUMP') !== -1, err);
-        assert.equal(result, null);
-        done();
-      });
-    });
   });
 
   describe('#getEntry()', () => {
