@@ -29,6 +29,9 @@ const ENS = require('ethereum-ens');
 const Web3 = require('web3');
 const repl = require('repl');
 
+let ens = null;
+let registrar = null;
+
 const web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 web3.eth.getAccounts((err, accts) => { // eslint-disable-line
@@ -36,21 +39,20 @@ web3.eth.getAccounts((err, accts) => { // eslint-disable-line
     console.log(err); // eslint-disable-line
   } else {
     // live net
-    ens = new ENS(web3, "0x314159265dd8dbb310642f98f50c066173c1259b");
+    ens = new ENS(web3, '0x314159265dd8dbb310642f98f50c066173c1259b');
     // ropsten
     // ens = new ENS(web3, "0x112234455c3a32fd11230c42e7bccd4a84e02010");
-    registrar = new Registrar(web3, ens, 'eth', 7,
-      (constructRegistrarErr, constructRegistrarResult) => {
-          const ens = registrar.ens; // eslint-disable-line
-          console.log(`connecting to: ` + // eslint-disable-line
-            `\n  * the ENS registry at ${ens.registry.address} ` + // eslint-disable-line
-            `\n  * the "${registrar.tld}" registrar at ${registrar.address}`);
-          const r = repl.start('node> ');
-          r.context.registrar = registrar;
-          r.context.ens = ens;
-          r.context.web3 = web3;
-          r.context.accts = accts;
-        }
+    registrar = new Registrar(web3, ens, 'eth', 7, () => {
+      const ens = registrar.ens; // eslint-disable-line
+      console.log(`connecting to: ` + // eslint-disable-line
+        `\n  * the ENS registry at ${ens.registry.address} ` + // eslint-disable-line
+        `\n  * the "${registrar.tld}" registrar at ${registrar.address}`);
+      const r = repl.start('node> ');
+      r.context.registrar = registrar;
+      r.context.ens = ens;
+      r.context.web3 = web3;
+      r.context.accts = accts;
+    }
     );
   }
 });

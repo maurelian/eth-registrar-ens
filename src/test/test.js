@@ -36,7 +36,7 @@ describe('Registrar', () => {
       const sources = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
       const output = solc.compile({ sources: { sources } }, 0);
       const compiled = {};
-      for (const contract in output.contracts) {
+      for (const contract in output.contracts) { // eslint-disable-line
         const contractName = contract.split(':')[1];
         compiled[contractName] = {};
         compiled[contractName].bytecode = output.contracts[contract].bytecode;
@@ -116,10 +116,8 @@ describe('Registrar', () => {
       registrar.getAllowedTime('foobarbaz', (allowedTimeError, allowedTimeResult) => {
         assert.equal(allowedTimeError, null);
         foobarbazAllowedTime = allowedTimeResult.toNumber();
-        const eightWeeksFromNow = Date.now() / 1000 + 8 * 7 * 86400;
-        assert.ok( foobarbazAllowedTime < eightWeeksFromNow );
-        // console.log('The allowed time in unix seconds for foobarbaz is: ', foobarbazAllowedTime);
-        // console.log('The allowed date for foobarbaz is: ', new Date(foobarbazAllowedTime*1000));
+        const eightWeeksFromNow = (Date.now() / 1000) + (8 * 7 * 86400);
+        assert.ok(foobarbazAllowedTime < eightWeeksFromNow);
         done();
       });
     });
@@ -131,11 +129,11 @@ describe('Registrar', () => {
         assert.equal(entryErr1, null);
         assert.equal(entryResult1.name, 'foobarbaz');
         assert.equal(entryResult1.status, 5);
-        assert.equal(entryResult1.mode, 'not-yet-available')
+        assert.equal(entryResult1.mode, 'not-yet-available');
         done();
       });
     });
-    
+
     it('Should show foobarbaz as "open" after time has passed.', (done) => {
         // Jump ahead 8 weeks, so that all names should be available.
       web3.currentProvider.sendAsync({
@@ -144,25 +142,25 @@ describe('Registrar', () => {
         params: [8 * 7 * 86400],  // 86400 seconds in a day
         id: Date.now()
       }, () => {
-          timeDiff += 8 * 7 * 86400;
-          web3.currentProvider.sendAsync({
-            jsonrpc: '2.0',
-            method: 'evm_mine',
-            id: Date.now()
-          }, () => {
-            web3.eth.getBlock('latest', false, 
-              (getBlockErr, getBlockResult) => {
-                assert.ok(getBlockResult.timestamp > foobarbazAllowedTime, new Date(getBlockResult.timestamp*1000));
-                registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
-                  assert.equal(entryErr1, null);
-                  assert.equal(entryResult1.name, 'foobarbaz');
-                  assert.equal(entryResult1.status, 0);
-                  assert.equal(entryResult1.mode, 'open');
-                  done();
-                });
+        timeDiff += 8 * 7 * 86400;
+        web3.currentProvider.sendAsync({
+          jsonrpc: '2.0',
+          method: 'evm_mine',
+          id: Date.now()
+        }, () => {
+          web3.eth.getBlock('latest', false,
+            (getBlockErr, getBlockResult) => {
+              assert.ok(getBlockResult.timestamp > foobarbazAllowedTime);
+              registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+                assert.equal(entryErr1, null);
+                assert.equal(entryResult1.name, 'foobarbaz');
+                assert.equal(entryResult1.status, 0);
+                assert.equal(entryResult1.mode, 'open');
+                done();
               });
             });
         });
+      });
     });
   });
 
@@ -266,7 +264,7 @@ describe('Registrar', () => {
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
-          registrar.contract.sealedBids(accounts[0], highBid.shaBid,
+          registrar.contract.sealedBids.call(accounts[0], highBid.shaBid,
             (sealedBidError, sealedBidResult) => {
               assert.equal(sealedBidError, null);
               assert.ok(
@@ -310,11 +308,12 @@ describe('Registrar', () => {
         registrar.unsealBid(highBid, { from: accounts[0], gas: 4700000 }, (err, result) => {
           assert.equal(err, null);
           assert.ok(result !== null);
-          registrar.contract.sealedBids.call(accounts[0], highBid.shaBid, (sealedBidErr, sealedBidResult) => {
-            assert.equal(sealedBidErr, null);
-            assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
-            done();
-          });
+          registrar.contract.sealedBids.call(accounts[0], highBid.shaBid,
+            (sealedBidErr, sealedBidResult) => {
+              assert.equal(sealedBidErr, null);
+              assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
+              done();
+            });
         });
       });
     });
@@ -323,7 +322,7 @@ describe('Registrar', () => {
         assert.equal(result.name, 'foobarbaz');
         assert.ok(result.deed.address !== '0x0000000000000000000000000000000000000000');
         const now = new Date();
-        assert.ok(+now - (result.deed.creationDate * 1000) > 0, result.deed.creationDate);
+        assert.ok(+now + (timeDiff * 1000) > (result.deed.creationDate * 1000));
         assert.equal(Number(result.highestBid), highBid.value);
         done();
       });
@@ -344,7 +343,7 @@ describe('Registrar', () => {
     it('Should throw an error if called too soon', (done) => {
       registrar.finalizeAuction('foobarbaz', { from: accounts[0], gas: 4700000 },
         (finalizeAuctionErr, finalizeAuctionResult) => {
-          assert.ok(finalizeAuctionErr.toString().indexOf('invalid JUMP') !== -1, finalizeAuctionErr);
+          assert.ok(finalizeAuctionErr.toString().indexOf('invalid opcode') !== -1, finalizeAuctionErr);
           assert.equal(finalizeAuctionResult, null);
           done();
         });
@@ -418,13 +417,3 @@ describe('Registrar', () => {
     });
   });
 });
-
-
-/* Snippet for creating new unit tests
-  describe('...', () => {
-    it('...', (done) =>  {
-      // test body
-      done();
-    });
-  });
-*/
