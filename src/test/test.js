@@ -20,6 +20,8 @@ let highBid = null;
 // TODO: test submitting and revealing low bid
 let lowBid = null;   // eslint-disable-line
 
+let timeDiff = null; // for tracking the cumulative evm_increaseTime amount
+
 
 describe('Registrar', () => {
   before(function (done) { // eslint-disable-line
@@ -142,6 +144,7 @@ describe('Registrar', () => {
         params: [8 * 7 * 86400],  // 86400 seconds in a day
         id: Date.now()
       }, () => {
+          timeDiff += 8 * 7 * 86400;
           web3.currentProvider.sendAsync({
             jsonrpc: '2.0',
             method: 'evm_mine',
@@ -298,15 +301,16 @@ describe('Registrar', () => {
       web3.currentProvider.sendAsync({
         jsonrpc: '2.0',
         method: 'evm_increaseTime',
-        // 86400 seconds per day, first auctions end 4 weeks after registrar contract is deployed
+        // 86400 seconds per day, the auction period end after 3 days.
         // The reveal period is the last 24 hours of the auction.
-        params: [86400 * ((7 * 4) - 1)],
+        params: [86400 * 3],
         id: new Date().getTime()
       }, () => {
+        timeDiff += 86400 * 3;
         registrar.unsealBid(highBid, { from: accounts[0], gas: 4700000 }, (err, result) => {
           assert.equal(err, null);
           assert.ok(result !== null);
-          registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
+          registrar.contract.sealedBids.call(accounts[0], highBid.shaBid, (sealedBidErr, sealedBidResult) => {
             assert.equal(sealedBidErr, null);
             assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
             done();
