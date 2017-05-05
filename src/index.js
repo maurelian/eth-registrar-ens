@@ -1,5 +1,4 @@
 const interfaces = require('./interfaces.js');
-
 const ENS = require('ethereum-ens');
 
 const namehash = ENS.prototype.namehash;
@@ -46,14 +45,20 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callba
   this.tld = tld;
   this.minLength = minLength;
   this.rootNode = namehash(this.tld);
+
+  const thisRegistrar = this;
+
   ens.owner(this.tld, (err, result) => {
     if (err) {
       callback(err, null);
     } else {
       this.address = result;
       this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(result);
-      //
-      callback(null, result);
+
+      this.contract.registryStarted((startingErr, startingDate) => {
+        thisRegistrar.registryStarted = startingDate;
+        callback(null, result);
+      });
     }
   });
 }
@@ -104,32 +109,8 @@ Registrar.prototype.getMode = function getMode(name, status, registrationDate, d
     }
   } else {
     // If name is of valid length
-    if (status === 0) { // eslint-disable-line
-      // Not an auction yet
-      mode = 'open';
-    } else if (status === 1) {
-      const now = new Date();
-      const registration = new Date(registrationDate * 1000);
-      const hours = 60 * 60 * 1000;
-
-      if ((registration - now) > 24 * hours) {
-        // Bids are open
-        mode = 'auction';
-      } else if (now < registration && (registration - now) < 24 * hours) {
-        // reveal time!
-        mode = 'reveal';
-      } else if (now > registration) {
-        if (deed === '0x0000000000000000000000000000000000000000') {
-          // can be opened again
-          mode = 'open';
-        } else {
-          // needs to be finalized
-          mode = 'finalize';
-        }
-      }
-    } else if (status === 2) {
-      mode = 'owned';
-    }
+    const modeNames = ['open', 'auction', 'owned', 'forbidden', 'reveal', 'not-yet-available'];
+    mode = modeNames[status];
   }
 
   return mode;
@@ -201,7 +182,6 @@ Registrar.prototype.getDeed = function getDeed(address, callback) {
     });
   });
 };
-
 
 /**
  * **Get the properties of the entry for a given a name.**
@@ -278,6 +258,40 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
   });
 };
 
+
+Registrar.prototype.getAllowedTime = function getAllowedTime(input, callback) {
+  // Accept either a name or a hash
+  let hash = input;
+  // if the input is a hash, we'll use that for the name in the entry object
+  let name = input;
+  // if the input is a name
+  if (input.substring(0, 2) !== '0x') {
+    name = normalise(input);
+    hash = this.sha3(name);
+  }
+
+  const registrarContract = this.contract;
+  registrarContract.getAllowedTime(hash, (timeErr, timeResult) => {
+    if (callback) {
+      callback(null, timeResult);
+    } else {
+      return timeResult;
+    }
+  });
+};
+
+/**
+ * Shuffles array in place. ES6 version
+ * @param {Array} a items The array containing the items.
+ */
+function shuffle(a) {
+  for (let i = a.length; i; i--) {
+    const j = Math.floor(Math.random() * i);
+    [a[i - 1], a[j]] = [a[j], a[i - 1]]; // eslint-disable-line
+  }
+}
+
+
 /**
  * **Open an auction for the desired name**
  *
@@ -293,20 +307,17 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
  * });
  *
  * @param {string} name The name to start an auction on
+ * @param {array} randomHashes An array of hashes to obscure the desired hash.
  * @param {object} params An optional transaction object to pass to web3.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
  * @returns {string} The transaction ID if callback is not supplied.
  */
-Registrar.prototype.openAuction = function openAuction(name, params = {}, callback = null) {
-  // Generate an array of random hashes
-  const randomHashes = new Array(10);
-  for (let i = 0; i < randomHashes.length; i++) {
-    randomHashes[i] = this.sha3(Math.random().toString());
-  }
-  // Randomly select an array entry to replace with the name we want
-  const j = Math.floor(Math.random() * 10);
+// eslint-disable-next-line max-len
+Registrar.prototype.openAuction = function openAuction(name, randomHashes, params = {}, callback = null) {
+  if (typeof randomHashes === 'undefined') randomHashes = []; // eslint-disable-line no-param-reassign
+
   if (callback) {
     try {
       const normalisedName = normalise(name);
@@ -314,7 +325,8 @@ Registrar.prototype.openAuction = function openAuction(name, params = {}, callba
       const hash = this.sha3(normalisedName);
 
       // Insert the hash we want
-      randomHashes[j] = hash;
+      randomHashes.push(hash);
+      shuffle(randomHashes);
 
       // this won't be called if either normalise or checkLength throw an error
       this.contract.startAuctions(randomHashes, params, callback);
@@ -327,8 +339,9 @@ Registrar.prototype.openAuction = function openAuction(name, params = {}, callba
 
     const hash = this.sha3(normalisedName);
 
-    // Insert the hash we're interested in to the randomly generated array
-    randomHashes[j] = hash;
+    // Insert the hash we want
+    randomHashes.push(hash);
+    shuffle(randomHashes);
     return this.contract.startAuctions(randomHashes, params);
   }
 };
@@ -407,25 +420,31 @@ Registrar.prototype.bidFactory = function bidFactory(name, owner, value, secret,
  * );
  *
  * @param {object} bid A Bid object.
+ * @param {array} randomHashes An array of hashes to obscure the desired hash.
  * @param {object} params An optional transaction object to pass to web3. The
  * value sent must be at least as much as the bid value.
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  * @return The transaction ID if callback is not supplied.
  */
-// TODO: should also open some new random hashes to obfuscate bidding activity
-Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = null) {
+// eslint-disable-next-line max-len
+Registrar.prototype.submitBid = function submitBid(bid, randomHashes, params = {}, callback = null) {
+  if (typeof randomHashes === 'undefined') {
+    randomHashes = []; // eslint-disable-line no-param-reassign
+  }
+  shuffle(randomHashes);
+
   if (callback) {
     if (params.value < bid.value) {
       callback(Registrar.NoDeposit, null);
     } else {
-      this.contract.newBid(bid.shaBid, params, callback);
+      this.contract.startAuctionsAndBid(randomHashes, bid.shaBid, params, callback);
     }
   } else {
     if (params.value < bid.value) {
       throw Registrar.NoDeposit;
     }
-    return this.contract.newBid(bid.shaBid, params);
+    return this.contract.startAuctionsAndBid(randomHashes, bid.shaBid, params);
   }
 };
 
@@ -456,9 +475,9 @@ Registrar.prototype.submitBid = function submitBid(bid, params = {}, callback = 
  */
 Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = null) {
   if (callback) {
-    this.contract.unsealBid(bid.hash, bid.owner, bid.value, bid.hexSecret, params, callback);
+    this.contract.unsealBid(bid.hash, bid.value, bid.hexSecret, params, callback);
   } else {
-    return this.contract.unsealBid(bid.hash, bid.owner, bid.value, bid.hexSecret, params);
+    return this.contract.unsealBid(bid.hash, bid.value, bid.hexSecret, params);
   }
 };
 
@@ -470,18 +489,17 @@ Registrar.prototype.unsealBid = function unsealBid(bid, params = {}, callback = 
  * // TODO: Make this example async
  *
  * @example
- * registrar.isBidRevealed(address, myBid);
+ * registrar.isBidRevealed(myBid);
  *
- * @param {string} address The address that placed the bid
  * @param {string} bid A bid object
  * @param {function} callback An optional callback; if specified, the
  *        function executes asynchronously.
  *
  * @returns {boolean} Whether or not the bid was revealed.
  */
-Registrar.prototype.isBidRevealed = function isBidRevealed(address, bid, callback) {
+Registrar.prototype.isBidRevealed = function isBidRevealed(bid, callback) {
   if (callback) {
-    this.contract.sealedBids.call(address, bid.shaBid, (err, result) => {
+    this.contract.sealedBids.call(bid.owner, bid.shaBid, (err, result) => {
       if (err) {
         return callback(err);
       }
@@ -489,8 +507,7 @@ Registrar.prototype.isBidRevealed = function isBidRevealed(address, bid, callbac
       callback(null, result === '0x0000000000000000000000000000000000000000');
     });
   } else {
-    return this.contract.sealedBids.call(address, bid.shaBid) ===
-      '0x0000000000000000000000000000000000000000';
+    return this.contract.sealedBids.call(bid.owner, bid.shaBid) === '0x0000000000000000000000000000000000000000';
   }
 };
 
@@ -589,9 +606,7 @@ Registrar.prototype.transfer = function transfer(name, newOwner, params = {}, ca
  *
  * @returns {string} The transaction ID if callback is not supplied.
  */
-Registrar.prototype.releaseDeed = function releaseDeed() {
-
-};
+Registrar.prototype.releaseDeed = function releaseDeed() {};
 
 /**
  * __Not yet implemented__
@@ -605,10 +620,7 @@ Registrar.prototype.releaseDeed = function releaseDeed() {
  *
  * @returns {string} The transaction ID if callback is not supplied.
  */
-Registrar.prototype.invalidateName = function invalidateName() {
-
-};
-
+Registrar.prototype.invalidateName = function invalidateName() {};
 
 /**
  * __Not yet implemented__
@@ -622,8 +634,6 @@ Registrar.prototype.invalidateName = function invalidateName() {
  *
  * @returns {string} The transaction ID if callback is not supplied.
  */
-Registrar.prototype.transferRegistrars = function transferRegistrars() {
-
-};
+Registrar.prototype.transferRegistrars = function transferRegistrars() {};
 
 module.exports = Registrar;

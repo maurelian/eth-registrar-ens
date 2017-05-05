@@ -164,6 +164,7 @@ bidders from guessing which of the hashes you are interested in.
 **Parameters**
 
 -   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The name to start an auction on
+-   `randomHashes` **[array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** An array of hashes to obscure the desired hash.
 -   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
            function executes asynchronously.
@@ -221,6 +222,7 @@ by the 'bidFactory'.
 **Parameters**
 
 -   `bid` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A Bid object.
+-   `randomHashes` **[array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** An array of hashes to obscure the desired hash.
 -   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3. The
     value sent must be at least as much as the bid value.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
@@ -284,7 +286,6 @@ is revealed or not.
 
 **Parameters**
 
--   `address` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address that placed the bid
 -   `bid` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** A bid object
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
            function executes asynchronously.
@@ -292,7 +293,7 @@ is revealed or not.
 **Examples**
 
 ```javascript
-registrar.isBidRevealed(address, myBid);
+registrar.isBidRevealed(myBid);
 ```
 
 Returns **[boolean](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Whether or not the bid was revealed.
@@ -391,3 +392,11 @@ Used during the upgrade process to a permanent registrar.
            function executes asynchronously.
 
 Returns **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The transaction ID if callback is not supplied.
+
+## shuffle
+
+Shuffles array in place. ES6 version
+
+**Parameters**
+
+-   `a` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** items The array containing the items.

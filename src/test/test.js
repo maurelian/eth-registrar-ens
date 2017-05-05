@@ -9,8 +9,8 @@ const Web3 = require('web3');
 
 const web3 = new Web3();
 
-web3.setProvider(TestRPC.provider());
-// web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
+// run TestRPC with higher gas limit. The DeployENS contract is pretty expensive.
+web3.setProvider(TestRPC.provider({ gasLimit: '0x5b8d80' }));
 
 let accounts = null;
 let ens = null;
@@ -19,6 +19,8 @@ let registrar = null;
 let highBid = null;
 // TODO: test submitting and revealing low bid
 let lowBid = null;   // eslint-disable-line
+
+let timeDiff = null; // for tracking the cumulative evm_increaseTime amount
 
 
 describe('Registrar', () => {
@@ -31,26 +33,21 @@ describe('Registrar', () => {
       }
       accounts = accts;
 
-      // Use this block to recompile and save
-      // Otherwise it's too slow for dev purposes
-      // const input = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
-      // const output = solc.compile(input, 1);
-      // const compiled = {};
-      // for (const contractName in output.contracts) {
-      //   // code and ABI that are needed by web3
-      //   compiled[contractName] = {};
-      //   compiled[contractName].bytecode = output.contracts[contractName].bytecode;
-      //   compiled[contractName].interface = JSON.parse(output.contracts[contractName].interface);
-      // }
-      // fs.writeFileSync('src/test/contracts.json', JSON.stringify(compiled));
-      // Use to speed up the testing process during development:
-      const compiled = JSON.parse(fs.readFileSync('src/test/contracts.json').toString());
-      const deployer = compiled[':DeployENS']; // eslint-disable-line
+      const sources = fs.readFileSync('src/test/dotEthRegistrar.sol').toString();
+      const output = solc.compile({ sources: { sources } }, 0);
+      const compiled = {};
+      for (const contract in output.contracts) { // eslint-disable-line
+        const contractName = contract.split(':')[1];
+        compiled[contractName] = {};
+        compiled[contractName].bytecode = output.contracts[contract].bytecode;
+        compiled[contractName].interface = JSON.parse(output.contracts[contract].interface);
+      }
+      const deployer = compiled['DeployENS']; // eslint-disable-line
       const deployensContract = web3.eth.contract(deployer.interface);
       deployensContract.new({
         from: accts[0],
         data: deployer.bytecode,
-        gas: 4700000
+        gas: 6000000
       }, (deploymentErr, contract) => {
         assert.equal(deploymentErr, null);
         if (contract.address !== undefined) {
@@ -113,6 +110,61 @@ describe('Registrar', () => {
     // );
   });
 
+  let foobarbazAllowedTime = 0;
+  describe('#getAllowedTime', () => {
+    it('Any given name should be allowed within the next 8 weeks', (done) => {
+      registrar.getAllowedTime('foobarbaz', (allowedTimeError, allowedTimeResult) => {
+        assert.equal(allowedTimeError, null);
+        foobarbazAllowedTime = allowedTimeResult.toNumber();
+        const eightWeeksFromNow = (Date.now() / 1000) + (8 * 7 * 86400);
+        assert.ok(foobarbazAllowedTime < eightWeeksFromNow);
+        done();
+      });
+    });
+  });
+
+  describe('#getEntry()', () => {
+    it('Should show foobarbaz as "not-yet-available" initially', (done) => {
+      registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+        assert.equal(entryErr1, null);
+        assert.equal(entryResult1.name, 'foobarbaz');
+        assert.equal(entryResult1.status, 5);
+        assert.equal(entryResult1.mode, 'not-yet-available');
+        done();
+      });
+    });
+
+    it('Should show foobarbaz as "open" after time has passed.', (done) => {
+        // Jump ahead 8 weeks, so that all names should be available.
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [8 * 7 * 86400],  // 86400 seconds in a day
+        id: Date.now()
+      }, () => {
+        timeDiff += 8 * 7 * 86400;
+        web3.currentProvider.sendAsync({
+          jsonrpc: '2.0',
+          method: 'evm_mine',
+          id: Date.now()
+        }, () => {
+          web3.eth.getBlock('latest', false,
+            (getBlockErr, getBlockResult) => {
+              assert.ok(getBlockResult.timestamp > foobarbazAllowedTime);
+              registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+                assert.equal(entryErr1, null);
+                assert.equal(entryResult1.name, 'foobarbaz');
+                assert.equal(entryResult1.status, 0);
+                assert.equal(entryResult1.mode, 'open');
+                done();
+              });
+            });
+        });
+      });
+    });
+  });
+
+
   describe('#bidFactory()', () => {
     it('should produce valid hashes', () => {
       assert.ok(typeof highBid.shaBid, 'string');
@@ -122,7 +174,7 @@ describe('Registrar', () => {
 
   describe('#openAuction()', () => {
     it('Should return an error when the name is too short', (done) => {
-      registrar.openAuction('foo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('foo', [], { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, Registrar.TooShort);
         assert.equal(txid, null);
         done();
@@ -130,7 +182,7 @@ describe('Registrar', () => {
     });
 
     it('Should return an error when the name contains special characters', (done) => {
-      registrar.openAuction('fooøø*/.ôôóOOOo', { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('fooøø*/.ôôóOOOo', [], { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.ok(err.toString().indexOf('Illegal char') !== -1, err);
         assert.equal(txid, null);
         done();
@@ -139,7 +191,7 @@ describe('Registrar', () => {
 
 
     it('Should set an `Open` node to status `Auction`', (done) => {
-      registrar.openAuction('foobarbaz', { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('foobarbaz', [], { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, null);
         assert.equal(typeof txid, 'string');
 
@@ -151,14 +203,6 @@ describe('Registrar', () => {
           assert.equal(status, 1);
           done();
         });
-      });
-    });
-
-    it('Should return an error if given a nameprepped-name with any status other than `Open`', (done) => {
-      registrar.openAuction('foobarbaz', { from: accounts[0], gas: 4700000 }, (err, result) => {
-        assert.ok(err.toString().indexOf('invalid JUMP') !== -1, err);
-        assert.equal(result, null);
-        done();
       });
     });
   });
@@ -205,7 +249,7 @@ describe('Registrar', () => {
   describe('#submitBid()', () => {
     it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
       registrar.submitBid(
-        highBid,
+        highBid, [],
         { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, Registrar.NoDeposit);
@@ -215,12 +259,12 @@ describe('Registrar', () => {
     });
 
     it('Should create a new sealedBid Deed holding the value of deposit', (done) => {
-      registrar.submitBid(highBid,
+      registrar.submitBid(highBid, [],
         { from: accounts[0], value: web3.toWei(3, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
           assert.ok(submitBidResult != null);
-          registrar.contract.sealedBids(accounts[0], highBid.shaBid,
+          registrar.contract.sealedBids.call(accounts[0], highBid.shaBid,
             (sealedBidError, sealedBidResult) => {
               assert.equal(sealedBidError, null);
               assert.ok(
@@ -242,7 +286,7 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as not revealed yet', (done) => {
-      registrar.isBidRevealed(accounts[0], highBid, (err, isRevealed) => {
+      registrar.isBidRevealed(highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, false);
         done();
@@ -255,19 +299,21 @@ describe('Registrar', () => {
       web3.currentProvider.sendAsync({
         jsonrpc: '2.0',
         method: 'evm_increaseTime',
-        // 86400 seconds per day, first auctions end 4 weeks after registrar contract is deployed
+        // 86400 seconds per day, the auction period end after 3 days.
         // The reveal period is the last 24 hours of the auction.
-        params: [86400 * ((7 * 4) - 1)],
+        params: [86400 * 3],
         id: new Date().getTime()
       }, () => {
+        timeDiff += 86400 * 3;
         registrar.unsealBid(highBid, { from: accounts[0], gas: 4700000 }, (err, result) => {
           assert.equal(err, null);
           assert.ok(result !== null);
-          registrar.contract.sealedBids.call(highBid.shaBid, (sealedBidErr, sealedBidResult) => {
-            assert.equal(sealedBidErr, null);
-            assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
-            done();
-          });
+          registrar.contract.sealedBids.call(accounts[0], highBid.shaBid,
+            (sealedBidErr, sealedBidResult) => {
+              assert.equal(sealedBidErr, null);
+              assert.equal(sealedBidResult, '0x0000000000000000000000000000000000000000');
+              done();
+            });
         });
       });
     });
@@ -276,7 +322,7 @@ describe('Registrar', () => {
         assert.equal(result.name, 'foobarbaz');
         assert.ok(result.deed.address !== '0x0000000000000000000000000000000000000000');
         const now = new Date();
-        assert.ok(+now - (result.deed.creationDate * 1000) > 0, result.deed.creationDate);
+        assert.ok(+now + (timeDiff * 1000) > (result.deed.creationDate * 1000));
         assert.equal(Number(result.highestBid), highBid.value);
         done();
       });
@@ -285,7 +331,7 @@ describe('Registrar', () => {
 
   describe('#isBidRevealed()', () => {
     it('Should return the bid as revealed', (done) => {
-      registrar.isBidRevealed(accounts[0], highBid, (err, isRevealed) => {
+      registrar.isBidRevealed(highBid, (err, isRevealed) => {
         assert.equal(err, null);
         assert.equal(isRevealed, true);
         done();
@@ -297,7 +343,7 @@ describe('Registrar', () => {
     it('Should throw an error if called too soon', (done) => {
       registrar.finalizeAuction('foobarbaz', { from: accounts[0], gas: 4700000 },
         (finalizeAuctionErr, finalizeAuctionResult) => {
-          assert.ok(finalizeAuctionErr.toString().indexOf('invalid JUMP') !== -1, finalizeAuctionErr);
+          assert.ok(finalizeAuctionErr.toString().indexOf('invalid opcode') !== -1, finalizeAuctionErr);
           assert.equal(finalizeAuctionResult, null);
           done();
         });
@@ -371,13 +417,3 @@ describe('Registrar', () => {
     });
   });
 });
-
-
-/* Snippet for creating new unit tests
-  describe('...', () => {
-    it('...', (done) =>  {
-      // test body
-      done();
-    });
-  });
-*/

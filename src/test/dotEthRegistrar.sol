@@ -1,21 +1,5 @@
 pragma solidity ^0.4.0;
 
-/*contract AbstractENS {
-    function owner(bytes32 node) constant returns(address);
-    function resolver(bytes32 node) constant returns(address);
-    function ttl(bytes32 node) constant returns(uint64);
-    function setOwner(bytes32 node, address owner);
-    function setSubnodeOwner(bytes32 node, bytes32 label, address owner);
-    function setResolver(bytes32 node, address resolver);
-    function setTTL(bytes32 node, uint64 ttl);
-
-    event Transfer(bytes32 indexed node, address owner);
-    event NewOwner(bytes32 indexed node, bytes32 indexed label, address owner);
-    event NewResolver(bytes32 indexed node, address resolver);
-    event NewTTL(bytes32 indexed node, uint64 ttl);
-}*/
-
-
 /**
  * The ENS registry contract.
  */
@@ -119,7 +103,8 @@ contract ENS {
     }
 }
 
-// Registrar from https://github.com/ethereum/ens/blob/d1e2dc6b9901045c3ee201cb390dcb2b172340b9/HashRegistrarSimplified.sol
+// Registrar from https://raw.githubusercontent.com/ethereum/ens/1ce01f29d601f843ac308a015c327c702d224cc7/contracts/HashRegistrarSimplified.sol
+
 
 /**
  * @title Deed to hold ether in exchange for ownership of a node
@@ -147,16 +132,17 @@ contract Deed {
         _;
     }
 
-    function Deed(uint _value) {
+    function Deed(address _owner) payable {
+        owner = _owner;
         registrar = msg.sender;
         creationDate = now;
         active = true;
-        value = _value;
+        value = msg.value;
     }
 
     function setOwner(address newOwner) onlyRegistrar {
-        // so contracts can check who sent them the ownership
-        previousOwner = owner;
+        if (newOwner == 0) throw;
+        previousOwner = owner;  // This allows contracts to check who sent them the ownership
         owner = newOwner;
         OwnerChanged(newOwner);
     }
@@ -165,12 +151,12 @@ contract Deed {
         registrar = newRegistrar;
     }
 
-    function setBalance(uint newValue) onlyRegistrar onlyActive payable {
+    function setBalance(uint newValue, bool throwOnFailure) onlyRegistrar onlyActive {
         // Check if it has enough balance to set the value
         if (value < newValue) throw;
         value = newValue;
         // Send the difference to the owner
-        if (!owner.send(this.balance - newValue)) throw;
+        if (!owner.send(this.balance - newValue) && throwOnFailure) throw;
     }
 
     /**
@@ -189,12 +175,14 @@ contract Deed {
      */
     function destroyDeed() {
         if (active) throw;
-        if(owner.send(this.balance))
+        
+        // Instead of selfdestruct(owner), invoke owner fallback function to allow
+        // owner to log an event if desired; but owner should also be aware that
+        // its fallback function can also be invoked by setBalance
+        if(owner.send(this.balance)) {
             selfdestruct(burn);
+        }
     }
-
-    // The default function just receives an amount
-    function () payable {}
 }
 
 /**
@@ -207,11 +195,13 @@ contract Registrar {
 
     mapping (bytes32 => entry) _entries;
     mapping (address => mapping(bytes32 => Deed)) public sealedBids;
+    
+    enum Mode { Open, Auction, Owned, Forbidden, Reveal, NotYetAvailable }
 
-    enum Mode { Open, Auction, Owned, Forbidden, Reveal }
-    uint32 constant auctionLength = 5 days;
+    uint32 constant totalAuctionLength = 5 days;
     uint32 constant revealPeriod = 48 hours;
-    uint32 constant initialAuctionPeriod = 4 weeks;
+    uint32 public constant launchLength = 8 weeks;
+
     uint constant minPrice = 0.01 ether;
     uint public registryStarted;
 
@@ -234,12 +224,14 @@ contract Registrar {
     //   Auction -> Reveal
     //   Reveal -> Owned
     //   Reveal -> Open (if nobody bid)
-    //   Owned -> Forbidden (invalidateName)
-    //   Owned -> Open (releaseDeed)
+    //   Owned -> Open (releaseDeed or invalidateName)
     function state(bytes32 _hash) constant returns (Mode) {
         var entry = _entries[_hash];
-        if(now < entry.registrationDate) {
-            if(now < entry.registrationDate - revealPeriod) {
+        
+        if(!isAllowed(_hash, now)) {
+            return Mode.NotYetAvailable;
+        } else if(now < entry.registrationDate) {
+            if (now < entry.registrationDate - revealPeriod) {
                 return Mode.Auction;
             } else {
                 return Mode.Reveal;
@@ -247,8 +239,6 @@ contract Registrar {
         } else {
             if(entry.highestBid == 0) {
                 return Mode.Open;
-            } else if(entry.deed == Deed(0)) {
-                return Mode.Forbidden;
             } else {
                 return Mode.Owned;
             }
@@ -266,7 +256,7 @@ contract Registrar {
     }
 
     modifier registryOpen() {
-        if(now < registryStarted  || now > registryStarted + 4 years) throw;
+        if(now < registryStarted  || now > registryStarted + 4 years || ens.owner(rootNode) != address(this)) throw;
         _;
     }
 
@@ -280,8 +270,8 @@ contract Registrar {
      * @param _ens The address of the ENS
      * @param _rootNode The hash of the rootnode.
      */
-    function Registrar(address _ens, bytes32 _rootNode, uint _startDate) {
-        ens = ENS(_ens);
+    function Registrar(ENS _ens, bytes32 _rootNode, uint _startDate) {
+        ens = _ens;
         rootNode = _rootNode;
         registryStarted = _startDate > 0 ? _startDate : now;
     }
@@ -344,6 +334,39 @@ contract Registrar {
         }
         return len;
     }
+    
+    /** 
+     * @dev Determines if a name is available for registration yet
+     * 
+     * Each name will be assigned a random date in which its auction 
+     * can be started, from 0 to 13 weeks
+     * 
+     * @param _hash The hash to start an auction on
+     * @param _timestamp The timestamp to query about
+     */
+     
+    function isAllowed(bytes32 _hash, uint _timestamp) constant returns (bool allowed){
+        return _timestamp > getAllowedTime(_hash);
+    }
+
+    /** 
+     * @dev Returns available date for hash
+     * 
+     * @param _hash The hash to start an auction on
+     */
+    function getAllowedTime(bytes32 _hash) constant returns (uint timestamp) {
+        return registryStarted + (launchLength*(uint(_hash)>>128)>>128);
+        // right shift operator: a >> b == a / 2**b
+    }
+    /**
+     * @dev Assign the owner in ENS, if we're still the registrar
+     * @param _hash hash to change owner
+     * @param _newOwner new owner to transfer to
+     */
+    function trySetSubnodeOwner(bytes32 _hash, address _newOwner) internal {
+        if(ens.owner(rootNode) == address(this))
+            ens.setSubnodeOwner(rootNode, _hash, _newOwner);        
+    }
 
     /**
      * @dev Start an auction for an available hash
@@ -356,11 +379,15 @@ contract Registrar {
      *
      * @param _hash The hash to start an auction on
      */
-    function startAuction(bytes32 _hash) inState(_hash, Mode.Open) registryOpen() {
+    function startAuction(bytes32 _hash) registryOpen() {
+        var mode = state(_hash);
+        if(mode == Mode.Auction) return;
+        if(mode != Mode.Open) throw;
+
         entry newAuction = _entries[_hash];
 
         // for the first month of the registry, make longer auctions
-        newAuction.registrationDate = max(now + auctionLength, registryStarted + initialAuctionPeriod);
+        newAuction.registrationDate = now + totalAuctionLength;
         newAuction.value = 0;
         newAuction.highestBid = 0;
         AuctionStarted(_hash, newAuction.registrationDate);
@@ -379,7 +406,6 @@ contract Registrar {
     /**
      * @dev Hash the values required for a secret bid
      * @param hash The node corresponding to the desired namehash
-     * @param owner The address which will own the
      * @param value The bid amount
      * @param salt A random value to ensure secrecy of the bid
      * @return The hash of the bid values
@@ -395,7 +421,7 @@ contract Registrar {
      * contains information about the bid, including the bidded hash, the bid amount, and a random
      * salt. Bids are not tied to any one auction until they are revealed. The value of the bid
      * itself can be masqueraded by sending more than the value of your actual bid. This is
-     * followed by a 24h reveal period. Bids revealed after this period will be burned and the ether unrecoverable.
+     * followed by a 48h reveal period. Bids revealed after this period will be burned and the ether unrecoverable.
      * Since this is an auction, it is expected that most public hashes, like known domains and common dictionary
      * words, will have multiple bidders pushing the price up.
      *
@@ -405,43 +431,52 @@ contract Registrar {
         if (address(sealedBids[msg.sender][sealedBid]) > 0 ) throw;
         if (msg.value < minPrice) throw;
         // creates a new hash contract with the owner
-        Deed newBid = new Deed(msg.value);
+        Deed newBid = (new Deed).value(msg.value)(msg.sender);
         sealedBids[msg.sender][sealedBid] = newBid;
         NewBid(sealedBid, msg.sender, msg.value);
+    }
 
-        if (!newBid.send(msg.value)) throw;
+    /**
+     * @dev Start a set of auctions and bid on one of them
+     *
+     * This method functions identically to calling `startAuctions` followed by `newBid`,
+     * but all in one transaction.
+     * @param hashes A list of hashes to start auctions on.
+     * @param sealedBid A sealed bid for one of the auctions.
+     */
+    function startAuctionsAndBid(bytes32[] hashes, bytes32 sealedBid) payable {
+        startAuctions(hashes);
+        newBid(sealedBid);
     }
 
     /**
      * @dev Submit the properties of a bid to reveal them
      * @param _hash The node in the sealedBid
-     * @param _owner The address in the sealedBid
      * @param _value The bid amount in the sealedBid
      * @param _salt The sale in the sealedBid
      */
-    function unsealBid(bytes32 _hash, address _owner, uint _value, bytes32 _salt) {
-        bytes32 seal = shaBid(_hash, _owner, _value, _salt);
+    function unsealBid(bytes32 _hash, uint _value, bytes32 _salt) {
+        bytes32 seal = shaBid(_hash, msg.sender, _value, _salt);
         Deed bid = sealedBids[msg.sender][seal];
         if (address(bid) == 0 ) throw;
         sealedBids[msg.sender][seal] = Deed(0);
-        bid.setOwner(_owner);
         entry h = _entries[_hash];
-        uint actualValue = min(_value, bid.value());
-        bid.setBalance(actualValue);
+        uint value = min(_value, bid.value());
+        bid.setBalance(value, true);
 
         var auctionState = state(_hash);
         if(auctionState == Mode.Owned) {
             // Too late! Bidder loses their bid. Get's 0.5% back.
             bid.closeDeed(5);
-            BidRevealed(_hash, _owner, actualValue, 1);
+            BidRevealed(_hash, msg.sender, value, 1);
         } else if(auctionState != Mode.Reveal) {
             // Invalid phase
             throw;
-        } else if (_value < minPrice) {
-            // Bid too low, refund 99.5%
+        } else if (value < minPrice || bid.creationDate() > h.registrationDate - revealPeriod) {
+            // Bid too low or too late, refund 99.5%
             bid.closeDeed(995);
-            BidRevealed(_hash, _owner, actualValue, 0);
-        } else if (_value > h.highestBid) {
+            BidRevealed(_hash, msg.sender, value, 0);
+        } else if (value > h.highestBid) {
             // new winner
             // cancel the other bid, refund 99.5%
             if(address(h.deed) != 0) {
@@ -452,18 +487,18 @@ contract Registrar {
             // set new winner
             // per the rules of a vickery auction, the value becomes the previous highestBid
             h.value = h.highestBid;
-            h.highestBid = actualValue;
+            h.highestBid = value;
             h.deed = bid;
-            BidRevealed(_hash, _owner, actualValue, 2);
-        } else if (_value > h.value) {
+            BidRevealed(_hash, msg.sender, value, 2);
+        } else if (value > h.value) {
             // not winner, but affects second place
-            h.value = actualValue;
+            h.value = value;
             bid.closeDeed(995);
-            BidRevealed(_hash, _owner, actualValue, 3);
+            BidRevealed(_hash, msg.sender, value, 3);
         } else {
             // bid doesn't affect auction
             bid.closeDeed(995);
-            BidRevealed(_hash, _owner, actualValue, 4);
+            BidRevealed(_hash, msg.sender, value, 4);
         }
     }
 
@@ -475,8 +510,7 @@ contract Registrar {
         Deed bid = sealedBids[bidder][seal];
         // If the bid hasn't been revealed after any possible auction date, then close it
         if (address(bid) == 0
-            || now < bid.creationDate() + initialAuctionPeriod
-            || bid.owner() > 0) throw;
+            || now < bid.creationDate() + totalAuctionLength + 2 weeks) throw;
 
         // Send the canceller 0.5% of the bid, and burn the rest.
         bid.setOwner(msg.sender);
@@ -491,15 +525,11 @@ contract Registrar {
      */
     function finalizeAuction(bytes32 _hash) onlyOwner(_hash) {
         entry h = _entries[_hash];
-
         h.value =  max(h.value, minPrice);
+        h.deed.setBalance(h.value, true);
 
-        // Assign the owner in ENS
-        ens.setSubnodeOwner(rootNode, _hash, h.deed.owner());
-
-        Deed deedContract = h.deed;
-        deedContract.setBalance(h.value);
-        HashRegistered(_hash, deedContract.owner(), h.value, h.registrationDate);
+        trySetSubnodeOwner(_hash, h.deed.owner());
+        HashRegistered(_hash, h.deed.owner(), h.value, h.registrationDate);
     }
 
     /**
@@ -508,29 +538,30 @@ contract Registrar {
      * @param newOwner The address to transfer ownership to
      */
     function transfer(bytes32 _hash, address newOwner) onlyOwner(_hash) {
+        if (newOwner == 0) throw;
+
         entry h = _entries[_hash];
         h.deed.setOwner(newOwner);
-        ens.setSubnodeOwner(rootNode, _hash, newOwner);
+        trySetSubnodeOwner(_hash, newOwner);
     }
 
     /**
-     * @dev After some time, the owner can release the property and get their ether back
+     * @dev After some time, or if we're no longer the registrar, the owner can release
+     *      the name and get their ether back.
      * @param _hash The node to release
      */
     function releaseDeed(bytes32 _hash) onlyOwner(_hash) {
         entry h = _entries[_hash];
         Deed deedContract = h.deed;
-        if (now < h.registrationDate + 1 years
-            || now > registryStarted + 8 years) throw;
-
-        HashReleased(_hash, h.value);
+        if(now < h.registrationDate + 1 years && ens.owner(rootNode) == address(this)) throw;
 
         h.value = 0;
         h.highestBid = 0;
         h.deed = Deed(0);
 
-        ens.setSubnodeOwner(rootNode, _hash, 0);
+        _tryEraseSingleNode(_hash);
         deedContract.closeDeed(1000);
+        HashReleased(_hash, h.value);        
     }
 
     /**
@@ -546,16 +577,62 @@ contract Registrar {
         bytes32 hash = sha3(unhashedName);
 
         entry h = _entries[hash];
-        ens.setSubnodeOwner(rootNode, hash, 0);
+
+        _tryEraseSingleNode(hash);
+
         if(address(h.deed) != 0) {
             // Reward the discoverer with 50% of the deed
-            // The previous owner gets nothing
-            h.deed.setBalance(h.deed.value()/2);
+            // The previous owner gets 50%
+            h.value = max(h.value, minPrice);
+            h.deed.setBalance(h.value/2, false);
             h.deed.setOwner(msg.sender);
             h.deed.closeDeed(1000);
         }
+
         HashInvalidated(hash, unhashedName, h.value, h.registrationDate);
+
+        h.value = 0;
+        h.highestBid = 0;
         h.deed = Deed(0);
+    }
+
+    /**
+     * @dev Allows anyone to delete the owner and resolver records for a (subdomain of) a
+     *      name that is not currently owned in the registrar. If passing, eg, 'foo.bar.eth',
+     *      the owner and resolver fields on 'foo.bar.eth' and 'bar.eth' will all be cleared.
+     * @param labels A series of label hashes identifying the name to zero out, rooted at the
+     *        registrar's root. Must contain at least one element. For instance, to zero 
+     *        'foo.bar.eth' on a registrar that owns '.eth', pass an array containing
+     *        [sha3('foo'), sha3('bar')].
+     */
+    function eraseNode(bytes32[] labels) {
+        if(labels.length == 0) throw;
+        if(state(labels[labels.length - 1]) == Mode.Owned) throw;
+
+        _eraseNodeHierarchy(labels.length - 1, labels, rootNode);
+    }
+
+    function _tryEraseSingleNode(bytes32 label) internal {
+        if(ens.owner(rootNode) == address(this)) {
+            ens.setSubnodeOwner(rootNode, label, address(this));
+            var node = sha3(rootNode, label);
+            ens.setResolver(node, 0);
+            ens.setOwner(node, 0);
+        }
+    }
+
+    function _eraseNodeHierarchy(uint idx, bytes32[] labels, bytes32 node) internal {
+        // Take ownership of the node
+        ens.setSubnodeOwner(node, labels[idx], address(this));
+        node = sha3(node, labels[idx]);
+        
+        // Recurse if there's more labels
+        if(idx > 0)
+            _eraseNodeHierarchy(idx - 1, labels, node);
+
+        // Erase the resolver and owner records
+        ens.setResolver(node, 0);
+        ens.setOwner(node, 0);
     }
 
     /**
@@ -568,12 +645,30 @@ contract Registrar {
         if(registrar == address(this))
             throw;
 
+        // Migrate the deed
         entry h = _entries[_hash];
         h.deed.setRegistrar(registrar);
+
+        // Call the new registrar to accept the transfer
+        Registrar(registrar).acceptRegistrarTransfer(_hash, h.deed, h.registrationDate);
+
+        // Zero out the entry
+        h.deed = Deed(0);
+        h.registrationDate = 0;
+        h.value = 0;
+        h.highestBid = 0;
     }
+
+    /**
+     * @dev Accepts a transfer from a previous registrar; stubbed out here since there
+     *      is no previous registrar implementing this interface.
+     * @param hash The sha3 hash of the label to transfer.
+     * @param deed The Deed object for the name being transferred in.
+     * @param registrationDate The date at which the name was originally registered.
+     */
+    function acceptRegistrarTransfer(bytes32 hash, Deed deed, uint registrationDate) {}
+
 }
-
-
 
 contract DeployENS {
     ENS public ens;
