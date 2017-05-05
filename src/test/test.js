@@ -173,7 +173,7 @@ describe('Registrar', () => {
 
   describe('#openAuction()', () => {
     it('Should return an error when the name is too short', (done) => {
-      registrar.openAuction('foo', null, { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('foo', [], { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, Registrar.TooShort);
         assert.equal(txid, null);
         done();
@@ -181,7 +181,7 @@ describe('Registrar', () => {
     });
 
     it('Should return an error when the name contains special characters', (done) => {
-      registrar.openAuction('fooøø*/.ôôóOOOo', null, { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('fooøø*/.ôôóOOOo', [], { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.ok(err.toString().indexOf('Illegal char') !== -1, err);
         assert.equal(txid, null);
         done();
@@ -190,7 +190,7 @@ describe('Registrar', () => {
 
 
     it('Should set an `Open` node to status `Auction`', (done) => {
-      registrar.openAuction('foobarbaz', null, { from: accounts[0], gas: 4700000 }, (err, txid) => {
+      registrar.openAuction('foobarbaz', [], { from: accounts[0], gas: 4700000 }, (err, txid) => {
         assert.equal(err, null);
         assert.equal(typeof txid, 'string');
 
@@ -206,7 +206,7 @@ describe('Registrar', () => {
     });
 
     it('Should return an error if given a nameprepped-name with any status other than `Open`', (done) => {
-      registrar.openAuction('foobarbaz', null, { from: accounts[0], gas: 4700000 }, (err, result) => {
+      registrar.openAuction('foobarbaz', [], { from: accounts[0], gas: 4700000 }, (err, result) => {
         assert.ok(err.toString().indexOf('invalid JUMP') !== -1, err);
         assert.equal(result, null);
         done();
@@ -256,7 +256,7 @@ describe('Registrar', () => {
   describe('#submitBid()', () => {
     it('Should throw an error if a deposit amount is not equal or greater than the value', (done) => {
       registrar.submitBid(
-        highBid, null,
+        highBid, [],
         { from: accounts[0], value: web3.toWei(1, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, Registrar.NoDeposit);
@@ -266,7 +266,7 @@ describe('Registrar', () => {
     });
 
     it('Should create a new sealedBid Deed holding the value of deposit', (done) => {
-      registrar.submitBid(highBid, null,
+      registrar.submitBid(highBid, [],
         { from: accounts[0], value: web3.toWei(3, 'ether'), gas: 4700000 },
         (submitBidErr, submitBidResult) => {
           assert.equal(submitBidErr, null);
