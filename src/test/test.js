@@ -108,14 +108,61 @@ describe('Registrar', () => {
     // );
   });
 
-  before((done) => {
-    web3.currentProvider.sendAsync({
-      jsonrpc: "2.0",
-      method: "evm_increaseTime",
-      params: [8*7*86400],  // 86400 seconds in a day
-      id: new Date().getTime()
-    }, done);
-  })
+  let foobarbazAllowedTime = 0;
+  describe('#getAllowedTime', () => {
+    it('Any given name should be allowed within the next 8 weeks', (done) => {
+      registrar.getAllowedTime('foobarbaz', (allowedTimeError, allowedTimeResult) => {
+        assert.equal(allowedTimeError, null);
+        foobarbazAllowedTime = allowedTimeResult.toNumber();
+        const eightWeeksFromNow = Date.now() / 1000 + 8 * 7 * 86400;
+        assert.ok( foobarbazAllowedTime < eightWeeksFromNow );
+        // console.log('The allowed time in unix seconds for foobarbaz is: ', foobarbazAllowedTime);
+        // console.log('The allowed date for foobarbaz is: ', new Date(foobarbazAllowedTime*1000));
+        done();
+      });
+    });
+  });
+
+  describe('#getEntry()', () => {
+    it('Should show foobarbaz as "not-yet-available" initially', (done) => {
+      registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+        assert.equal(entryErr1, null);
+        assert.equal(entryResult1.name, 'foobarbaz');
+        assert.equal(entryResult1.status, 5);
+        assert.equal(entryResult1.mode, 'not-yet-available')
+        done();
+      });
+    });
+    
+    it('Should show foobarbaz as "open" after time has passed.', (done) => {
+        // Jump ahead 8 weeks, so that all names should be available.
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [8 * 7 * 86400],  // 86400 seconds in a day
+        id: Date.now()
+      }, () => {
+          web3.currentProvider.sendAsync({
+            jsonrpc: '2.0',
+            method: 'evm_mine',
+            id: Date.now()
+          }, () => {
+            web3.eth.getBlock('latest', false, 
+              (getBlockErr, getBlockResult) => {
+                assert.ok(getBlockResult.timestamp > foobarbazAllowedTime, new Date(getBlockResult.timestamp*1000));
+                registrar.getEntry('foobarbaz', (entryErr1, entryResult1) => {
+                  assert.equal(entryErr1, null);
+                  assert.equal(entryResult1.name, 'foobarbaz');
+                  assert.equal(entryResult1.status, 0);
+                  assert.equal(entryResult1.mode, 'open');
+                  done();
+                });
+              });
+            });
+        });
+    });
+  });
+
 
   describe('#bidFactory()', () => {
     it('should produce valid hashes', () => {
