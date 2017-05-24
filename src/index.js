@@ -54,7 +54,6 @@ function Registrar(web3, ens = new ENS(web3), tld = 'eth', minLength = 7, callba
     } else {
       this.address = result;
       this.contract = this.web3.eth.contract(interfaces.registrarInterface).at(result);
-
       this.contract.registryStarted((startingErr, startingDate) => {
         thisRegistrar.registryStarted = startingDate;
         callback(null, result);
@@ -620,7 +619,15 @@ Registrar.prototype.releaseDeed = function releaseDeed() {};
  *
  * @returns {string} The transaction ID if callback is not supplied.
  */
-Registrar.prototype.invalidateName = function invalidateName() {};
+Registrar.prototype.invalidateName = function invalidateName(name, params = {}, callback = null) {
+  const hash = this.sha3(name);
+
+  if (callback) {
+    this.contract.invalidateName(hash, params, callback);
+  } else {
+    return this.contract.invalidateName(hash, params);
+  }
+};
 
 /**
  * __Not yet implemented__
