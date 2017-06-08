@@ -237,7 +237,9 @@ Registrar.prototype.getEntry = function getEntry(input, callback) {
     if (entry[1] !== '0x0000000000000000000000000000000000000000') {
       // the entry has a deed address, get the details and add to the entry object
       this.getDeed(entry[1], (err, deed) => {
-        if (err) callback(err);
+        if (err) {
+          return callback(err);
+        }
         entryObject.deed = deed;
         if (callback) {
           callback(null, entryObject);
