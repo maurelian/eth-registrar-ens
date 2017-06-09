@@ -457,20 +457,26 @@ describe('Registrar', () => {
                 id: Date.now()
               }, () => {
                 timeDiff += 8 * 7 * 86400;
-                registrar.getEntry('foo', (entryErr1, entryResult1) => {
-                  assert.equal(entryErr1, null);
-                  assert.equal(entryResult1.name, 'foo');
-                  assert.ok(entryResult1.deed.owner.slice(0,2) == '0x');
-                  assert.equal(entryResult1.mode, 'forbidden-can-invalidate');
-                  registrar.invalidateName('foo', { from: accounts[1], gas: 4700000 }, (invalidateErr, invalidateResult) => {
+                registrar.finalizeAuction('foo', { from: accounts[0], gas: 4700000 }, (finalizeErr, finalizeResult) => {
+                  assert.equal(finalizeErr, null);
+                  assert.ok(finalizeResult != null);
+                  registrar.getEntry('foo', (entryErr1, entryResult1) => {
+                    assert.equal(entryErr1, null);
+                    assert.equal(entryResult1.name, 'foo');
+                    assert.ok(entryResult1.deed.owner.slice(0,2) == '0x');
+                    assert.equal(entryResult1.mode, 'forbidden-can-invalidate');
                     debugger;
-                    assert.equal(invalidateErr, null); // this is failing for some reason with "invalid opcode"
-                    assert.ok(invalidateResult != null);
-                    registrar.getEntry('foo', (entryErr2, entryResult2) => {
-                      assert.equal(entryErr1, null);
-                      assert.equal(entryResult1.name, 'foo');
-                      assert.equal(entryResult1.mode, 'forbidden');
-                      done();
+                    assert.equal(entryResult1.status, 2);
+                    registrar.invalidateName('foo', { from: accounts[1], gas: 4700000 }, (invalidateErr, invalidateResult) => {
+                      debugger;
+                      assert.equal(invalidateErr, null); // this is failing for some reason with "invalid opcode"
+                      assert.ok(invalidateResult != null);
+                      registrar.getEntry('foo', (entryErr2, entryResult2) => {
+                        assert.equal(entryErr1, null);
+                        assert.equal(entryResult1.name, 'foo');
+                        assert.equal(entryResult1.mode, 'forbidden');
+                        done();
+                      });
                     });
                   });
                 });
