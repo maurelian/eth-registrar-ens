@@ -464,12 +464,17 @@ describe('Registrar', () => {
                     assert.equal(entryErr1, null);
                     assert.equal(entryResult1.name, 'foo');
                     assert.ok(entryResult1.deed.owner.slice(0,2) == '0x');
-                    assert.equal(entryResult1.mode, 'forbidden-can-invalidate');
+                    // the `forbidden-can-invalidate` mode does not exist in the registrar 
+                    // but is useful in this context where we know the plain text name
+                    assert.equal(entryResult1.mode, 'forbidden-can-invalidate'); 
                     debugger;
+                    // status `2` corresponds to 'owned'
                     assert.equal(entryResult1.status, 2);
                     registrar.invalidateName('foo', { from: accounts[1], gas: 4700000 }, (invalidateErr, invalidateResult) => {
                       debugger;
-                      assert.equal(invalidateErr, null); // this is failing for some reason with "invalid opcode"
+                      // So at this point, we have a 3 letter name, which we've verified to be 'owned'
+                      // but the call to invalidate it is failing for with "invalid opcode"
+                      assert.equal(invalidateErr, null); 
                       assert.ok(invalidateResult != null);
                       registrar.getEntry('foo', (entryErr2, entryResult2) => {
                         assert.equal(entryErr1, null);

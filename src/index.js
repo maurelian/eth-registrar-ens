@@ -630,7 +630,6 @@ Registrar.prototype.invalidateName = function invalidateName(name, params = {}, 
 };
 
 /**
- * __Not yet implemented__
  * Transfers the deed to the current registrar, if different from this one.
  * Used during the upgrade process to a permanent registrar.
  *
