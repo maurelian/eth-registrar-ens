@@ -373,14 +373,14 @@ the submitter will earn a portion of the deed value, and the name will be update
 
 -   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** An invalid name to search for in the registry.
 -   `options` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** An optional transaction object to pass to web3.
--   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
+-   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
            function executes asynchronously.
+-   `params`   (optional, default `{}`)
 
 Returns **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The transaction ID if callback is not supplied.
 
 ### transferRegistrars
 
-**Not yet implemented**
 Transfers the deed to the current registrar, if different from this one.
 Used during the upgrade process to a permanent registrar.
 

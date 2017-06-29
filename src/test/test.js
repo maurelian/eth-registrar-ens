@@ -19,6 +19,7 @@ let registrar = null;
 let highBid = null;
 // TODO: test submitting and revealing low bid
 let lowBid = null;   // eslint-disable-line
+let shortBid = null;   // eslint-disable-line
 
 let timeDiff = null; // for tracking the cumulative evm_increaseTime amount
 
@@ -37,6 +38,7 @@ describe('Registrar', () => {
       const output = solc.compile({ sources: { sources } }, 0);
       const compiled = {};
       for (const contract in output.contracts) { // eslint-disable-line
+        console.log("Compiling ", contract); // eslint-disable-line
         const contractName = contract.split(':')[1];
         compiled[contractName] = {};
         compiled[contractName].bytecode = output.contracts[contract].bytecode;
@@ -87,16 +89,32 @@ describe('Registrar', () => {
           assert.equal(typeof highBidObject, 'object');
           highBid = highBidObject;
           registrar.bidFactory(
-              'foobarbaz',
-              accounts[0],
-              web3.toWei(1, 'ether'), // value
-              'secret',
-              (lowBidErr, lowBidObject) => {
-                assert.equal(lowBidErr, null);
-                assert.equal(typeof lowBidObject, 'object');
-                lowBid = lowBidObject;
-                done();
-              }
+            'foobarbaz',
+            accounts[0],
+            web3.toWei(1, 'ether'), // value
+            'secret',
+            (lowBidErr, lowBidObject) => {
+              assert.equal(lowBidErr, null);
+              assert.equal(typeof lowBidObject, 'object');
+              lowBid = lowBidObject;
+              // we can't use bidFactory for short names because it checks length.
+              shortBid = {
+                name: 'foo',
+                hash: registrar.sha3('foo'),
+                value: '1000000000000000000',
+                owner: accounts[0],
+                secret: 'secret',
+                hexSecret: '0x65462b0520ef7d3df61b9992ed3bea0c56ead753be7c8b3614e0ce01e4cac41b',
+              };
+              registrar.contract.shaBid(shortBid.hash, shortBid.owner, shortBid.value,
+                shortBid.hexSecret,
+                (shortBidErr, shortBidResult) => {
+                  assert.equal(shortBidErr, null);
+                  shortBid.shaBid = shortBidResult;
+                  done();
+                }
+              );
+            }
           );
         }
     );
@@ -411,9 +429,63 @@ describe('Registrar', () => {
     });
   });
 
-  describe.skip('#invalidateName()', () => {
-    it('Should do something specific', (done) => {
-      done();
+  describe('#invalidateName()', () => {
+    it('Should invalidate a name', (done) => {
+      const hash = registrar.sha3('foo');
+      registrar.contract.startAuctionsAndBid([hash], shortBid.shaBid,
+        { from: accounts[0], gas: 4700000, value: web3.toWei(1, 'ether') },
+        (startAndBidErr, startAndBidResult) => {
+          assert.equal(startAndBidErr, null);
+          assert.ok(startAndBidResult != null);
+          // fast forward to reveal period
+          web3.currentProvider.sendAsync({
+            jsonrpc: '2.0',
+            method: 'evm_increaseTime',
+            params: [3 * 86400],  // 86400 seconds in a day
+            id: Date.now()
+          }, () => {
+            timeDiff += 3 * 86400;
+            // unseal the bid
+            registrar.unsealBid(shortBid, { from: accounts[0], gas: 4700000 },
+              (unsealErr, unsealResult) => {
+                assert.equal(unsealErr, null);
+                assert.ok(unsealResult != null);
+                // fast forward to registration date
+                web3.currentProvider.sendAsync({
+                  jsonrpc: '2.0',
+                  method: 'evm_increaseTime',
+                  params: [2 * 86400],  // 86400 seconds in a day
+                  id: Date.now()
+                }, () => {
+                  timeDiff += 8 * 7 * 86400;
+                  registrar.finalizeAuction('foo', { from: accounts[0], gas: 4700000 }, (finalizeErr, finalizeResult) => {
+                    assert.equal(finalizeErr, null);
+                    assert.ok(finalizeResult != null);
+                    registrar.getEntry('foo', (entryErr1, entryResult1) => {
+                      assert.equal(entryErr1, null);
+                      assert.equal(entryResult1.name, 'foo');
+                      assert.ok(entryResult1.deed.owner.slice(0, 2) === '0x');
+                      // the `forbidden-can-invalidate` mode does not exist in the registrar
+                      // but is useful in this context where we know the plain text name
+                      assert.equal(entryResult1.mode, 'forbidden-can-invalidate');
+                      assert.equal(entryResult1.status, 2);
+                      registrar.invalidateName('foo', { from: accounts[1], gas: 4700000 }, (invalidateErr, invalidateResult) => {
+                        assert.equal(invalidateErr, null);
+                        assert.ok(invalidateResult != null);
+                        registrar.getEntry('foo', (entryErr2, entryResult2) => {
+                          assert.equal(entryErr2, null);
+                          assert.equal(entryResult2.name, 'foo');
+                          assert.equal(entryResult2.mode, 'forbidden');
+                          done();
+                        });
+                      });
+                    });
+                  });
+                });
+              }
+            );
+          });
+        });
     });
   });
 });
