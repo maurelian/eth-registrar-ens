@@ -1,6 +1,6 @@
 # .ETH Registrar ENS
 
-The ENS is a decentralized name service hosted on the Ethereum blockchain, providing censorship and DOS resistant registration of human readable names.  
+The ENS is a decentralized name service hosted on the Ethereum blockchain, providing censorship and DOS resistant registration of human readable names.
 
 This package is intended to simplify interaction, and dapp development, with the [Ethereum Name Service's](http://ens.domains/) (ENS) initial auction registrar.
 
@@ -25,7 +25,7 @@ This package is intended to simplify interaction, and dapp development, with the
       }
     );
 
-All methods in this module which use [`web3`](https://github.com/ethereum/web3.js) to communicate with an ethereum node support the same optionally-asynchronous pattern as `web3`. When a callback is provided, the function returns nothing, but instead calls the callback with (err, result) when the operation completes. 
+All methods in this module which use [`web3`](https://github.com/ethereum/web3.js) to communicate with an ethereum node support the same optionally-asynchronous pattern as `web3`. When a callback is provided, the function returns nothing, but instead calls the callback with (err, result) when the operation completes.
 
 Synchronous calls are useful for talking to a contract in the REPL, but **dapp developers should use only asynchronous calls in order to support light clients like Metamask**.
 
@@ -56,7 +56,7 @@ to the [Auction Registrar][docs], which governs the `.eth` namespace.
 -   `minLength` **integer?= 7** The minimum length of a name require by the registrar.
 -   `tld` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= 'eth'** The top level domain
 -   `ens` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)?= new ENS(web3)** The address of the ENS instance
--   `callback`  
+-   `callback`
 
 **Examples**
 
@@ -91,15 +91,15 @@ Open, Auction, Reveal, Owned, Forbidden.
 -   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** An optional transaction object to pass to web3.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)** An optional callback; if specified, the
            function executes asynchronously.
--   `status`  
--   `registrationDate`  
--   `deed`  
+-   `status`
+-   `registrationDate`
+-   `deed`
 
 **Examples**
 
 ```javascript
 var name = 'foobarbaz';
-registrar.openAuction(name, { from: accounts[0], gas: 4700000 },
+registrar.openAuction(name, [],{ from: accounts[0], gas: 4700000 },
   function (err, result) {
     console.log(result);
   }
@@ -117,7 +117,7 @@ This method is used in the getEntry method, but also available on its own.
 **Parameters**
 
 -   `address` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** The address of the deed
--   `callback`  
+-   `callback`
 
 Returns **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** A deed object
 
@@ -196,7 +196,7 @@ used to reveal the bid params later.
 -   `owner` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** An owner address
 -   `value` **[number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** The value of your bid in wei
 -   `secret` **secret** An optional random value
--   `callback`  
+-   `callback`
 
 **Examples**
 
@@ -308,7 +308,7 @@ ENS subnode.
 
 **Parameters**
 
--   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)** 
+-   `name` **[string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String)**
 -   `params` **[object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?= {}** An optional transaction object to pass to web3.
 -   `callback` **[function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function)?= null** An optional callback; if specified, the
            function executes asynchronously.
